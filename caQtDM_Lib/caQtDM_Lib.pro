@@ -4,6 +4,7 @@ TARGET_FILENAME = "caQtDM_Lib.dll"
 include (../caQtDM_Viewer/qtdefs.pri)
 CONFIG += caQtDM_Lib
 include(../caQtDM.pri)
+INCLUDEPATH += $$(EPICS_INCLUDE)
 
 QT += core gui network
 

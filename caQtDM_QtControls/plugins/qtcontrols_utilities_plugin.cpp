@@ -197,6 +197,7 @@ QWidget *caScriptButtonInterface::createWidget(QWidget* parent)
     return new caScriptButton(parent);
 }
 
+
 caScriptButtonInterface::caScriptButtonInterface(QObject* parent) : CustomWidgetInterface_Utilities(parent)
 {
     strng name[3], type[3] = {"","",""};

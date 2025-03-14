@@ -1145,6 +1145,8 @@ Define_ControlsysTargetDir{
                 }
         }
 }
+
+INCLUDEPATH += $$(QWTHOME)
 		
 
 SOURCES +=

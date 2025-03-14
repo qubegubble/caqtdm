@@ -5,8 +5,6 @@ include(../caQtDM_Viewer/qtdefs.pri)
 CONFIG += caQtDM_QtControls caQtDM_xdl2ui_Lib
 include(../caQtDM.pri)
 
-#DEFINES += QT_NO_DEBUG_OUTPUT
-
 contains(QT_VER_MAJ, 4) {
       CONFIG += qwt plugin thread uitools network
       CONFIG += designer

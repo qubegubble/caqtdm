@@ -1,4 +1,28 @@
 # Sphinx
+# Ubuntu based Linx
+!.gitignore
+!.git/
 docs/build
+
+#Binaries
 caQtDM_Binaries/
+.qtc_clangd/
+moc/
+obj/
+
+# .idea/ if the Project gets opened with CLion
 .idea/
+
+# User specific stuff
+main.h
+all.pro.user
+Makefile
+
+# Compile Outputs
+caQtDM_Lib/caQtDM_Plugins/environment/moc_environment_plugin.cpp
+caQtDM_Lib/caQtDM_Plugins/environment/moc_predefs.h
+caQtDM_Lib/ui_main.h
+caQtDM_QtControls/plugins/qrc_qtcontrolsplugin.cpp
+caQtDM_QtControls/qrc_qtcontrols.cpp
+caQtDM_Viewer/qrc_caQtDM.cpp
+caQtDM_Viewer/src/ui_main.h

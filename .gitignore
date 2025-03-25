@@ -16,7 +16,7 @@ obj/
 # User specific stuff
 main.h
 all.pro.user
-Makefile
+Makefile*
 
 # Compile Outputs
 caQtDM_Lib/caQtDM_Plugins/environment/moc_environment_plugin.cpp

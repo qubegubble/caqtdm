@@ -457,6 +457,7 @@ caQtDM_Lib {
       		INCLUDEPATH += $(EPICSINCLUDE)/os/Linux
 #for epics 3.15 and gcc we need this
                 INCLUDEPATH   += $(EPICSINCLUDE)/compiler/gcc
+                INCLUDEPATH += /usr/include/x86_64-linux-gnu/qt5/
 
       		OBJECTS_DIR = ./obj
                 DESTDIR = $(CAQTDM_COLLECT)

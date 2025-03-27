@@ -4,18 +4,10 @@
 # even parsing of the .pro files fails
 
 _QTHOME=$$(QTHOME)
-_QWTHOME=$$(QWTHOME)
 _EPICSBASE=$$(EPICS_BASE)
 _EPICSHOSTARCH=$$(EPICS_HOST_ARCH)
 
 include (caQtDM_Viewer/qtdefs.pri)
-
-isEmpty(_QWTHOME){
- message("QWTHOME must be defined in order to locate QWT")
- error(please define QWTHOME.)
-}else{
- message("qwt located in $$_QWTHOME")
-}
 
 isEmpty(_QTHOME){
  message("QTHOME must be defined in order to locate QT")

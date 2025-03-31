@@ -20,8 +20,10 @@ CONFIG         += plugin
 INCLUDEPATH    += .
 INCLUDEPATH    += ../
 INCLUDEPATH    += ../../src
-HEADERS         = demo_plugin.h ../controlsinterface.h
-SOURCES         = demo_plugin.cpp
+HEADERS         = ../controlsinterface.h \
+    opcua_plugin.h
+SOURCES         = \
+    opcua_plugin.cpp
 TARGET          = demo_plugin
 android {
    INCLUDEPATH += $(ANDROIDFUNCTIONSINCLUDE)

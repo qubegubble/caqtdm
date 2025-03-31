@@ -22,8 +22,8 @@
  *  Contact details:
  *    anton.mezger@psi.ch
  */
-#ifndef DEMOPLUGIN_H
-#define DEMOPLUGIN_H
+#ifndef OPCUAPLUGIN_H
+#define OPCUAPlugin_H
 
 #include <QObject>
 #include <QMap>
@@ -38,7 +38,7 @@
 #include <QtConcurrentRun>
 #endif
 
-class Q_DECL_EXPORT DemoPlugin : public QObject, ControlsInterface
+class Q_DECL_EXPORT OPCUAPlugin : public QObject, ControlsInterface
 {
     Q_OBJECT
     Q_INTERFACES(ControlsInterface)
@@ -48,7 +48,7 @@ class Q_DECL_EXPORT DemoPlugin : public QObject, ControlsInterface
 
 public:
     QString pluginName();
-    DemoPlugin();
+    OPCUAPlugin();
 
     int initCommunicationLayer(MutexKnobData *data, MessageWindow *messageWindow, QMap<QString, QString> options);
     int pvAddMonitor(int index, knobData *kData, int rate, int skip);

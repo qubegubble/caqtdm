@@ -24,7 +24,7 @@
  */
 #include <QDebug>
 #include <QThread>
-#include "demo_plugin.h"
+#include "opcua_plugin.h"
 
 // as defined in knobDefines.h
 //caType {caSTRING	= 0, caINT = 1, caFLOAT = 2, caENUM = 3, caCHAR = 4, caLONG = 5, caDOUBLE = 6};
@@ -33,20 +33,20 @@
 // at the epics3 plugin
 
 // gives the plugin name back
-QString DemoPlugin::pluginName()
+QString OPCUAPlugin::pluginName()
 {
-    return "demo";
+    return "opcua";
 }
 
 // constructor
-DemoPlugin::DemoPlugin()
+OPCUAPlugin::OPCUAPlugin()
 {
-    qDebug() << "DemoPlugin: Create";
+    qDebug() << "OPCUAPlugin: Create";
 }
 
 // in this demo we update our interface here; normally you should update in from your controlsystem
 // take a look how monitors are treated in the epics3 plugin
-void DemoPlugin::updateInterface()
+void OPCUAPlugin::updateInterface()
 {
     double newValue = 0.0;
 
@@ -78,7 +78,7 @@ void DemoPlugin::updateInterface()
 }
 
 // in this demo we update our values here
-void DemoPlugin::updateValues()
+void OPCUAPlugin::updateValues()
 {
     QMutexLocker locker(&mutex);
 #ifndef HARDWORK
@@ -99,9 +99,9 @@ void  DemoPlugin::updateHardwork()
 #endif
 
 // initialize our communicationlayer with everything you need
-int DemoPlugin::initCommunicationLayer(MutexKnobData *data, MessageWindow *messageWindow, QMap<QString, QString> options)
+int OPCUAPlugin::initCommunicationLayer(MutexKnobData *data, MessageWindow *messageWindow, QMap<QString, QString> options)
 {
-    qDebug() << "DemoPlugin: InitCommunicationLayer with options" << options;
+    qDebug() << "OPCUAPlugin: InitCommunicationLayer with options" << options;
 
     mutexknobdataP = data;
     messagewindowP = messageWindow;
@@ -122,14 +122,14 @@ int DemoPlugin::initCommunicationLayer(MutexKnobData *data, MessageWindow *messa
 }
 
 // caQtDM_Lib will call this routine for defining a monitor
-int DemoPlugin::pvAddMonitor(int index, knobData *kData, int rate, int skip) {
+int OPCUAPlugin::pvAddMonitor(int index, knobData *kData, int rate, int skip) {
     Q_UNUSED(index);
     Q_UNUSED(rate);
     Q_UNUSED(skip);
     QMutexLocker locker(&mutex);
     QString key = kData->pv;
 
-    qDebug() << "DemoPlugin:pvAddMonitor" << kData->pv << kData->index;
+    qDebug() << "OPCUAPlugin:pvAddMonitor" << kData->pv << kData->index;
     double value = initValue;
     initValue += 10;
 
@@ -143,10 +143,10 @@ int DemoPlugin::pvAddMonitor(int index, knobData *kData, int rate, int skip) {
 }
 
 // caQtDM_Lib will call this routine for getting rid of a monitor
-int DemoPlugin::pvClearMonitor(knobData *kData) {
+int OPCUAPlugin::pvClearMonitor(knobData *kData) {
     QMutexLocker locker(&mutex);
 
-    qDebug() << "DemoPlugin:pvClearMonitor" << kData->pv << kData->index;
+    qDebug() << "OPCUAPlugin:pvClearMonitor" << kData->pv << kData->index;
     QString key = kData->pv;
     if(!listOfDoubles.contains(key)) listOfDoubles.remove(key);
     listOfIndexes.removeAll(kData->index);
@@ -154,9 +154,9 @@ int DemoPlugin::pvClearMonitor(knobData *kData) {
     return true;
 }
 
-int DemoPlugin::pvFreeAllocatedData(knobData *kData)
+int OPCUAPlugin::pvFreeAllocatedData(knobData *kData)
 {
-    //qDebug() << "DemoPlugin:pvFreeAllocatedData";
+    //qDebug() << "OPCUAPlugin:pvFreeAllocatedData";
     if (kData->edata.info != (void *) Q_NULLPTR) {
         free(kData->edata.info);
         kData->edata.info = (void*) Q_NULLPTR;
@@ -170,19 +170,19 @@ int DemoPlugin::pvFreeAllocatedData(knobData *kData)
 }
 
 // caQtDM_Lib will call this routine for setting data (see for more detail the epics3 plugin)
-int DemoPlugin::pvSetValue(char *pv, double rdata, int32_t idata, char *sdata, char *object, char *errmess, int forceType) {
+int OPCUAPlugin::pvSetValue(char *pv, double rdata, int32_t idata, char *sdata, char *object, char *errmess, int forceType) {
     Q_UNUSED(object);
     Q_UNUSED(errmess);
     Q_UNUSED(forceType);
     QMutexLocker locker(&mutex);
-    qDebug() << "DemoPlugin:pvSetValue" << pv << rdata << idata << sdata;
+    qDebug() << "OPCUAPlugin:pvSetValue" << pv << rdata << idata << sdata;
     QString key = pv;
     if(listOfDoubles.contains(key)) listOfDoubles.insert(pv, rdata);
     return true;
 }
 
 // caQtDM_Lib will call this routine for setting waveforms data (see for more detail the epics3 plugin)
-int DemoPlugin::pvSetWave(char *pv, float *fdata, double *ddata, int16_t *data16, int32_t *data32, char *sdata, int nelm, char *object, char *errmess) {
+int OPCUAPlugin::pvSetWave(char *pv, float *fdata, double *ddata, int16_t *data16, int32_t *data32, char *sdata, int nelm, char *object, char *errmess) {
     Q_UNUSED(pv);
     Q_UNUSED(fdata);
     Q_UNUSED(ddata);
@@ -193,66 +193,66 @@ int DemoPlugin::pvSetWave(char *pv, float *fdata, double *ddata, int16_t *data16
     Q_UNUSED(object);
     Q_UNUSED(errmess);
     QMutexLocker locker(&mutex);
-    qDebug() << "DemoPlugin:pvSetWave";
+    qDebug() << "OPCUAPlugin:pvSetWave";
     return true;
 }
 
 // caQtDM_Lib will call this routine for getting a description of the monitor
-int DemoPlugin::pvGetTimeStamp(char *pv, char *timestamp) {
+int OPCUAPlugin::pvGetTimeStamp(char *pv, char *timestamp) {
     Q_UNUSED(pv);
     Q_UNUSED(timestamp);
-    qDebug() << "DemoPlugin:pvgetTimeStamp";
+    qDebug() << "OPCUAPlugin:pvgetTimeStamp";
     strcpy(timestamp, "timestamp in epics format");
     return true;
 }
 
 // caQtDM_Lib will call this routine for getting the timestamp for this monitor
-int DemoPlugin::pvGetDescription(char *pv, char *description) {
+int OPCUAPlugin::pvGetDescription(char *pv, char *description) {
     Q_UNUSED(pv);
     Q_UNUSED(description);
-    qDebug() << "DemoPlugin:pvGetDescription";
+    qDebug() << "OPCUAPlugin:pvGetDescription";
     strcpy(description, "hello, I am a double");
     return true;
 }
 
 // next two routines are used to stop and restart the monitoring (used in case of tabWidgets in the display)
-int DemoPlugin::pvClearEvent(void * ptr) {
+int OPCUAPlugin::pvClearEvent(void * ptr) {
     Q_UNUSED(ptr);
-    qDebug() << "DemoPlugin:pvClearEvent";
+    qDebug() << "OPCUAPlugin:pvClearEvent";
     return true;
 }
 
-int DemoPlugin::pvAddEvent(void * ptr) {
+int OPCUAPlugin::pvAddEvent(void * ptr) {
     Q_UNUSED(ptr);
-    qDebug() << "DemoPlugin:pvAddEvent";
+    qDebug() << "OPCUAPlugin:pvAddEvent";
     return true;
 }
 
 // next two routines are used to connect and disconnect monitors when the application gest suspended and reactivated
-int DemoPlugin::pvReconnect(knobData *kData) {
+int OPCUAPlugin::pvReconnect(knobData *kData) {
     Q_UNUSED(kData);
-    qDebug() << "DemoPlugin:pvReconnect";
+    qDebug() << "OPCUAPlugin:pvReconnect";
     return true;
 }
 
-int DemoPlugin::pvDisconnect(knobData *kData) {
+int OPCUAPlugin::pvDisconnect(knobData *kData) {
     Q_UNUSED(kData);
-    qDebug() << "DemoPlugin:pvDisconnect";
+    qDebug() << "OPCUAPlugin:pvDisconnect";
     return true;
 }
 
 // flush any io is periodically called (1s timer) in order to flush the disconnection and reconnection
 // used for pv's that will be hidden and shown in case of tabwidgets
-int DemoPlugin::FlushIO() {
-    //qDebug() << "DemoPlugin:FlushIO";
+int OPCUAPlugin::FlushIO() {
+    //qDebug() << "OPCUAPlugin:FlushIO";
     return true;
 }
 
 // termination (in case of epics3, this is used to destroy the context when the application gest deactivated
 // otherwise probably no meaning; in this demo, we stop the simulation, however it will not be reactivated
 // any more (you may do that through pvReconnect)
-int DemoPlugin::TerminateIO() {
-    //qDebug() << "DemoPlugin:TerminateIO";
+int OPCUAPlugin::TerminateIO() {
+    //qDebug() << "OPCUAPlugin:TerminateIO";
     timerValues->stop();
     timer->stop();
     return true;

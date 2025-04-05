@@ -1,5 +1,5 @@
 include (../../../caQtDM_Viewer/qtdefs.pri)
-QT += core gui
+QT += core gui opcua
 contains(QT_VER_MAJ, 5) {
     QT     += widgets
 }
@@ -21,8 +21,10 @@ INCLUDEPATH    += .
 INCLUDEPATH    += ../
 INCLUDEPATH    += ../../src
 HEADERS         = ../controlsinterface.h \
+    opcua_connection_handler.h \
     opcua_plugin.h
 SOURCES         = \
+    opcua_connection_handler.cpp \
     opcua_plugin.cpp
 TARGET          = demo_plugin
 android {

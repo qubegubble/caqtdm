@@ -1,0 +1,5 @@
+asyncua
+opcua-client
+pyqtgraph
+cryptography
+numpy

@@ -2,6 +2,7 @@
 #define OPCUA_CONNECTION_HANDLER_H
 
 #include <qcoreapplication.h>
+#include <QOpcUaClient>
 
 namespace opcua{
     class opcua_connection_handler{
@@ -10,7 +11,7 @@ namespace opcua{
             opcua_connection_handler();
             ~opcua_connection_handler();
 
-            void connect();
+            void connect(std::string connectionString);
             bool isConnected();
             void disconnect();
 

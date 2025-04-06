@@ -21,10 +21,10 @@ INCLUDEPATH    += .
 INCLUDEPATH    += ../
 INCLUDEPATH    += ../../src
 HEADERS         = ../controlsinterface.h \
-    opcua_connection_handler.h \
+    opcua_client.h \
     opcua_plugin.h
 SOURCES         = \
-    opcua_connection_handler.cpp \
+    opcua_client.cpp \
     opcua_plugin.cpp
 TARGET          = demo_plugin
 android {

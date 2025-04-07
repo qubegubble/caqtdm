@@ -7,3 +7,5 @@ CONFIG -= app_bundle
 TEMPLATE = app
 
 SOURCES += tst_opcua_test.cpp
+
+INCLUDEPATH += ../../caQtDM_Lib/caQtDM_Plugins/opcua

@@ -1,4 +1,5 @@
 #include <QtTest>
+#include "opcua_client.h"
 
 // add necessary includes here
 

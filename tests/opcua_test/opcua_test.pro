@@ -6,4 +6,4 @@ CONFIG -= app_bundle
 
 TEMPLATE = app
 
-SOURCES +=  tst_opcua_test.cpp
+SOURCES += tst_opcua_test.cpp

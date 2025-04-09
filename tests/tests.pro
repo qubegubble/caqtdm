@@ -1,2 +1,4 @@
+
 TEMPLATE = subdirs
-SUBDIRS += opcua_test
+SUBDIRS += \
+    opcua_test

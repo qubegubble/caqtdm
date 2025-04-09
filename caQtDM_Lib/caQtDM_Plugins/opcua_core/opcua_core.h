@@ -2,14 +2,16 @@
 #define OPCUA_CLIENT_H
 
 #include <QObject>
-#include <qstring.h>
-#include "open62541/open62541.h"
+#include <QtOpcUa/QOpcUaClient>
+#include <QtOpcUa/QOpcUaProvider>
 
-class OpcUaClient : public QObject{
+class OpcUaCore : public QObject
+{
     Q_OBJECT
+
 public:
-    explicit OpcUaClient(QObject *parent = nullptr);
-    ~OpcUaClient();
+    explicit OpcUaCore(QObject *parent = nullptr);
+    ~OpcUaCore();
 
     bool connect(const QString &url);
     void disconnect();
@@ -20,8 +22,8 @@ signals:
     void errorOccured(const QString &message);
 
 private:
-    UA_Client *m_client;
+    QOpcUaProvider m_provider;
+    QOpcUaClient *m_client;
 };
-
 
 #endif // OPCUA_CLIENT_H

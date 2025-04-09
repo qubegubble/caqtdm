@@ -8,6 +8,7 @@ from asyncua.common.methods import uamethod
 async def addNode(server, idx, objectName, variableName):
     myobj = await server.nodes.objects.add_object(idx, objectName)
     myvar = await myobj.add_variable(idx, variableName, 6.7)
+
     return myobj, myvar
 
 async def writeData(_logger, name, start_angle, variable):
@@ -33,8 +34,14 @@ async def main():
     object1_name = "Object1"
     object1, var1 = await addNode(server, idx, object1_name, "Variable1")
 
+    _logger.info(f"Created Object NodeId: {object1.nodeid}")
+    _logger.info(f"Created Variable NodeId: {var1.nodeid}")
+
     object2_name = "Object2"
     object2, var2 = await addNode(server, idx, object2_name, "Variable2")
+
+    _logger.info(f"Created Object NodeId: {object2.nodeid}")
+    _logger.info(f"Created Variable NodeId: {var2.nodeid}")
 
     _logger.info("Starting server!")
     async with server:

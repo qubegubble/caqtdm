@@ -206,3 +206,5 @@ cython_debug/
 .pypirc
 
 moc*
+*.o
+*.a

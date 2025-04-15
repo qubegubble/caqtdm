@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import math
+import os
 
 from asyncua import Server, ua
 from asyncua.common.methods import uamethod
@@ -23,10 +24,16 @@ async def writeData(_logger, name, start_angle, variable):
 
 async def main():
     _logger = logging.getLogger(__name__)
+    DEFAULT_PORT = '4840'
+
+    env = os.environ['PORT']
+    if env is None:
+        _logger.warning('No env variable found, using default instead ')
+        env = DEFAULT_PORT
 
     server = Server()
     await server.init()
-    server.set_endpoint("opc.tcp://0.0.0.0:4840/freeopcua/server/")
+    server.set_endpoint(f'opc.tcp://0.0.0.0:{env}/freeopcua/server/')
 
     uri = "http://examples.freeopcua.github.io"
     idx = await server.register_namespace(uri)

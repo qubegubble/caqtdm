@@ -1,15 +1,27 @@
 import asyncio
 import time
 import logging
+import os
 
 from asyncua import Client
 
-url = "opc.tcp://server:4840/freeopcua/server/"
-namespace = "http://examples.freeopcua.github.io"
 
 
 async def main():
     _logger = logging.getLogger(__name__)
+
+    DEFAULT_PORT = '4840'
+    DEFAULT_SERVER = 'server1'
+
+    env = os.environ['PORT']
+    server_name = os.environ['SERVER_NAME']
+    if env is None or server_name is None:
+        _logger.warning('No env variable found, using default instead ')
+        env = DEFAULT_PORT
+        server_name = DEFAULT_SERVER
+
+    url = f'opc.tcp://{server_name}:{env}/freeopcua/server/'
+    namespace = "http://examples.freeopcua.github.io"
 
     print(f"Connecting to {url} ...")
     while True:

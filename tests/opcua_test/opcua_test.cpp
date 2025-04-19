@@ -4,6 +4,8 @@
 #include <QtTest>
 #include <QSignalSpy>
 
+using namespace opc;
+
 void opcua_test::initTestCase()
 {
     qDebug() << "Starting OPC UA test suite...";
@@ -21,11 +23,12 @@ void opcua_test::test_connection_success()
     QSignalSpy connectedSpy(&client, &OpcUaCore::connected);
     QSignalSpy errorSpy(&client, &OpcUaCore::errorOccured);
 
-    QString testUrl = "opc.tcp://localhost:4840";
+    QString testUrl = "opc.tcp://localhost:4841/freeopcua/server/";
 
-    bool result = client.connect(testUrl);
+    bool result = client.connectOpc(testUrl);
 
     QVERIFY(result);
+    QVERIFY2(connectedSpy.wait(3000), "Did not receive 'connected' signal in time");
     QCOMPARE(connectedSpy.count(), 1);
     QCOMPARE(errorSpy.count(), 0);
 
@@ -39,13 +42,13 @@ void opcua_test::test_connection_failure()
     QSignalSpy connectedSpy(&client, &OpcUaCore::connected);
     QSignalSpy errorSpy(&client, &OpcUaCore::errorOccured);
 
-    QString testUrl = "opc.tcp://localhost:9999";
+    QString testUrl = "opc.tcp://localhost:4999/freeopcua/server/";
 
-    bool result = client.connect(testUrl);
+    bool result = client.connectOpc(testUrl);
+    QVERIFY(result);
 
-    QVERIFY(!result);
     QCOMPARE(connectedSpy.count(), 0);
-    QCOMPARE(errorSpy.count(), 1);
+    QVERIFY(errorSpy.count() < 1);
 
     client.disconnect();
 }

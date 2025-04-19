@@ -1,5 +1,4 @@
-asyncua
-opcua-client
-pyqtgraph
-cryptography
-numpy
+opcua              # the python-opcua server & client library
+cryptography       # for security policies
+numpy              # if you still need it elsewhere
+pyqtgraph          # (for your Qt client inspection, if you’re using it)

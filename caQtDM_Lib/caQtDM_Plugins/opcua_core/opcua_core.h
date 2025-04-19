@@ -4,26 +4,29 @@
 #include <QObject>
 #include <QtOpcUa/QOpcUaClient>
 #include <QtOpcUa/QOpcUaProvider>
+namespace opc{
 
-class OpcUaCore : public QObject
-{
-    Q_OBJECT
+    class OpcUaCore : public QObject
+    {
+        Q_OBJECT
 
-public:
-    explicit OpcUaCore(QObject *parent = nullptr);
-    ~OpcUaCore();
+    public:
+        explicit OpcUaCore(QObject *parent = nullptr);
+        ~OpcUaCore();
 
-    bool connect(const QString &url);
-    void disconnect();
+        bool connectOpc(const QString &url);
+        void disconnect();
 
-signals:
-    void connected();
-    void disconnected();
-    void errorOccured(const QString &message);
+    signals:
+        void connected();
+        void disconnected();
+        void errorOccured(const QString &message);
 
-private:
-    QOpcUaProvider m_provider;
-    QOpcUaClient *m_client;
-};
+    private:
+        QOpcUaProvider m_provider;
+        QOpcUaClient *m_client;
+        bool m_endpointsHooked = false;
+    };
+}
 
 #endif // OPCUA_CLIENT_H

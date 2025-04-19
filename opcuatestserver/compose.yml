@@ -6,9 +6,11 @@ services:
       context: .
       dockerfile: Dockerfile.server
     ports:
-      - "4841:4841"
+      - "4841:4840"
     environment:
-      - PORT=4841
+      - PORT=4840           # container's internal port
+      - PUBLIC_PORT=4841    # host-exposed port
+      - PUBLIC_HOST=localhost  # for local testing from host
     networks:
       - app-network
 
@@ -17,7 +19,7 @@ services:
       context: .
       dockerfile: Dockerfile.server
     ports:
-      - "4842:4842"
+      - "4842:4840"
     environment:
       - PORT=4842
     networks:

@@ -1,63 +1,57 @@
-import asyncio
-import logging
+# server.py
+import time
 import math
 import os
-
-from asyncua import Server, ua
-from asyncua.common.methods import uamethod
-
-async def addNode(server, idx, objectName, variableName):
-    myobj = await server.nodes.objects.add_object(idx, objectName)
-    myvar = await myobj.add_variable(idx, variableName, 6.7)
-
-    return myobj, myvar
-
-async def writeData(_logger, name, start_angle, variable):
-    angle = start_angle
-    while True:
-        await asyncio.sleep(1)
-        _logger.debug(await variable.get_value())
-        new_val = math.sin(angle * math.pi / 100) * 100
-        _logger.info("%s: Set value of %s to %.1f", name, variable, new_val)
-        await variable.write_value(new_val)
-        angle = (angle + 1) % 200
-
-async def main():
-    _logger = logging.getLogger(__name__)
-    DEFAULT_PORT = '4840'
-
-    env = os.environ['PORT']
-    if env is None:
-        _logger.warning('No env variable found, using default instead ')
-        env = DEFAULT_PORT
-
-    server = Server()
-    await server.init()
-    server.set_endpoint(f'opc.tcp://0.0.0.0:{env}/freeopcua/server/')
-
-    uri = "http://examples.freeopcua.github.io"
-    idx = await server.register_namespace(uri)
-
-    object1_name = "Object1"
-    object1, var1 = await addNode(server, idx, object1_name, "Variable1")
-
-    _logger.info(f"Created Object NodeId: {object1.nodeid}")
-    _logger.info(f"Created Variable NodeId: {var1.nodeid}")
-
-    object2_name = "Object2"
-    object2, var2 = await addNode(server, idx, object2_name, "Variable2")
-
-    _logger.info(f"Created Object NodeId: {object2.nodeid}")
-    _logger.info(f"Created Variable NodeId: {var2.nodeid}")
-
-    _logger.info("Starting server!")
-    async with server:
-        await asyncio.gather(
-            writeData(_logger, object1_name, 0, var1),
-            writeData(_logger, object2_name, 100, var2)
-        )
-        
+import logging
+from opcua import Server
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    asyncio.run(main(), debug=True)
+    log = logging.getLogger(__name__)
+
+    # pick up PORT from env or default to 4840
+    port = int(os.environ.get("PORT", "4840"))
+    endpoint = f"opc.tcp://0.0.0.0:{port}/freeopcua/server/"
+
+    # 1) set up server
+    server = Server()
+    server.set_endpoint(endpoint)
+    uri = "http://examples.freeopcua.github.io"
+    idx = server.register_namespace(uri)
+
+    # 2) add two objects, each with one variable
+    objects = server.get_objects_node()
+    obj1 = objects.add_object(idx, "Object1")
+    var1 = obj1.add_variable(idx, "Variable1", 6.7)
+    var1.set_writable()   # clients can write if they wish
+
+    obj2 = objects.add_object(idx, "Object2")
+    var2 = obj2.add_variable(idx, "Variable2", -6.7)
+    var2.set_writable()
+
+    log.info(f"Starting OPC UA Server at {endpoint}")
+    server.start()
+
+    try:
+        angle1 = 0
+        angle2 = 100
+        while True:
+            time.sleep(1.0)
+
+            # compute & write new values
+            v1 = math.sin(angle1 * math.pi / 100) * 100
+            v2 = math.sin(angle2 * math.pi / 100) * -100
+
+            var1.set_value(v1)
+            var2.set_value(v2)
+
+            log.info("Object1.Variable1 -> %.1f", v1)
+            log.info("Object2.Variable2 -> %.1f", v2)
+
+            angle1 = (angle1 + 1) % 200
+            angle2 = (angle2 + 1) % 200
+
+    except KeyboardInterrupt:
+        log.info("Shutting down server.")
+    finally:
+        server.stop()

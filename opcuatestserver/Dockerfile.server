@@ -2,10 +2,16 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-COPY requirements.txt ./
+# 1) Install build‑deps so cryptography (and numpy) wheel builds succeed
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      build-essential libssl-dev libffi-dev python3-dev \
+ && rm -rf /var/lib/apt/lists/*
 
+# 2) Copy & install libraries
+COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
+# 3) Copy your server and run it
 COPY server.py ./
-
-CMD [ "python", "server.py" ]
+CMD ["python", "server.py"]

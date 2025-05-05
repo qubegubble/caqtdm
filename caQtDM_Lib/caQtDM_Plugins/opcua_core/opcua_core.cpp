@@ -61,4 +61,29 @@ namespace opc{
             qDebug() << "Disconnected from OPC UA server.";
         }
     }
+
+    void OpcUaCore::fetchDataFromSingleNode(const QString &nodeId)
+    {
+        if (!m_client || m_client->state() != QOpcUaClient::Connected) {
+            emit errorOccured("Client is not connected.");
+            return;
+        }
+
+        QOpcUaNode *node = m_client->node(nodeId);
+        if (!node) {
+            emit errorOccured("Failed to create node object.");
+            return;
+        }
+
+        connect(node, &QOpcUaNode::attributeRead, this, [this, node](QOpcUa::NodeAttribute attr, const QVariant &value) {
+            if (attr == QOpcUa::NodeAttribute::Value) {
+                qDebug() << "Read value:" << value;
+                emit valueRead(value);
+            }
+            node->deleteLater(); // Clean up the node instance
+        });
+
+        node->attributeRead(QOpcUa::NodeAttribute::Value);
+    }
+
 }

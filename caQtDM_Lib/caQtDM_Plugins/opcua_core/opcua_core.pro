@@ -4,7 +4,7 @@ QT += opcua
 TEMPLATE = lib
 CONFIG += staticlib
 
-CONFIG += c++17
+CONFIG += c++13
 
 # You can make your code fail to compile if it uses deprecated APIs.
 # In order to do so, uncomment the following line.
@@ -23,5 +23,4 @@ unix {
 !isEmpty(target.path): INSTALLS += target
 
 LIBS += -L/usr/lib/x86_64-linux-gnu/qt5/plugins/opcua/ -lopen62541
-INCLUDEPATH += /usr/include/open62541
 

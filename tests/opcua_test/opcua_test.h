@@ -12,6 +12,7 @@ private slots:
     void cleanupTestCase();
 
     void test_connection_success();
+    void test_read_single_node();
     void test_connection_failure();
 };
 

@@ -18,6 +18,7 @@ namespace opc{
         void disconnect();
         void fetchDataFromSingleNode(const QString &nodeId);
         void fetchDataFromMultipleNotes(const QStringList &nodeIds);
+        void browseRoot();
 
     signals:
         void connected();

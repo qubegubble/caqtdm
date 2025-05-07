@@ -31,8 +31,6 @@ void opcua_test::test_connection_success()
     QVERIFY2(connectedSpy.wait(3000), "Did not receive 'connected' signal in time");
     QCOMPARE(connectedSpy.count(), 1);
     QCOMPARE(errorSpy.count(), 0);
-
-    client.disconnect();
 }
 
 void opcua_test::test_read_single_node()
@@ -43,7 +41,7 @@ void opcua_test::test_read_single_node()
     QSignalSpy errorSpy(&client, &OpcUaCore::errorOccured);
 
     QString testUrl = "opc.tcp://localhost:4841/freeopcua/server/";
-    QString testNodeId = "Object1.Variable1"; // Use a valid NodeId from your test server
+    QString testNodeId = "ns=2;s=Object1.Variable1"; // Use a valid NodeId from your test server
 
     QVERIFY(client.connectOpc(testUrl));
     QVERIFY(connectedSpy.wait(3000)); // Wait for connection

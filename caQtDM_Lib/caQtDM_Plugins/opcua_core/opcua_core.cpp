@@ -75,15 +75,29 @@ namespace opc{
             return;
         }
 
-        connect(node, &QOpcUaNode::attributeRead, this, [this, node](QOpcUa::NodeAttribute attr, const QVariant &value) {
-            if (attr == QOpcUa::NodeAttribute::Value) {
-                qDebug() << "Read value:" << value;
-                emit valueRead(value);
+        connect(node, &QOpcUaNode::attributeRead, this, [this, node](QOpcUa::NodeAttributes attrs) {
+            if (attrs.testFlag(QOpcUa::NodeAttribute::Value)) {
+                QVariant val = node->attribute(QOpcUa::NodeAttribute::Value);
+                qDebug() << "Read value:" << val;
+                emit valueRead(val);
+            } else {
+                emit errorOccured("Attribute read failed or did not include value.");
             }
-            node->deleteLater(); // Clean up the node instance
+            node->deleteLater(); // Clean up
         });
 
-        node->attributeRead(QOpcUa::NodeAttribute::Value);
+        node->readAttributes(QOpcUa::NodeAttribute::Value);
+    }
+
+    void OpcUaCore::browseRoot()
+    {
+        auto node = m_client->node("ns=0;i=85"); // Objects node
+        connect(node, &QOpcUaNode::childrenRead, this, [node]() {
+            for (const QString &childId : node->childrenIds()) {
+                qDebug() << "Child NodeId:" << childId;
+            }
+        });
+        node->browseChildren();
     }
 
 }

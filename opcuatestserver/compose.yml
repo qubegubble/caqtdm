@@ -14,30 +14,6 @@ services:
     networks:
       - app-network
 
-  server2:
-    build:
-      context: .
-      dockerfile: Dockerfile.server
-    ports:
-      - "4842:4840"
-    environment:
-      - PORT=4842
-    networks:
-      - app-network
-
-  client:
-    build:
-      context: .
-      dockerfile: Dockerfile.client
-    depends_on:
-      - server1
-      - server2
-    environment:
-      - PORT=4841
-      - SERVER_NAME=server1
-    networks:
-      - app-network
-
 networks:
   app-network:
     driver: bridge

@@ -1,5 +1,6 @@
 QT -= gui
 QT += opcua
+QT += core
 
 TEMPLATE = lib
 CONFIG += staticlib

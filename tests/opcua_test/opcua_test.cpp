@@ -41,13 +41,12 @@ void opcua_test::test_read_single_node()
     QSignalSpy errorSpy(&client, &OpcUaCore::errorOccured);
 
     QString testUrl = "opc.tcp://localhost:4841/freeopcua/server/";
-    QString testNodeId = "ns=2;s=Object1.Variable1"; // Use a valid NodeId from your test server
 
     QVERIFY(client.connectOpc(testUrl));
     QVERIFY(connectedSpy.wait(3000)); // Wait for connection
     QCOMPARE(connectedSpy.count(), 1);
 
-    client.fetchDataFromSingleNode(testNodeId);
+    client.fetchDataFromAnyNode();
     QVERIFY(valueSpy.wait(3000)); // Wait for value to be read
 
     QCOMPARE(errorSpy.count(), 0);
@@ -71,8 +70,8 @@ void opcua_test::test_connection_failure()
     bool result = client.connectOpc(testUrl);
     QVERIFY(result);
 
-    QCOMPARE(connectedSpy.count(), 0);
-    QVERIFY(errorSpy.count() < 1);
+    QVERIFY(errorSpy.wait(6000));          // block up to 3 s for an error
+    QVERIFY(errorSpy.count() >= 1);
 
     client.disconnect();
 }

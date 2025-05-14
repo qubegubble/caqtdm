@@ -25,6 +25,7 @@
 #include <QDebug>
 #include <QThread>
 #include "opcua_plugin.h"
+#include "opcua_core.h"
 
 // as defined in knobDefines.h
 //caType {caSTRING	= 0, caINT = 1, caFLOAT = 2, caENUM = 3, caCHAR = 4, caLONG = 5, caDOUBLE = 6};

@@ -30,7 +30,7 @@ namespace opc{
         void disconnectOpc();
         void fetchDataFromAnyNode();
         void fetchDataFromSingleNode(const QString &nodeId);
-        void fetchDataFromMultipleNotes(const QStringList &nodeIds);
+        void fetchDataFromMultipleNodes(const QStringList &nodeIds);
         void browseRoot();
 
     signals:

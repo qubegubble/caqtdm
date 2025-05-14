@@ -65,11 +65,14 @@ namespace opc{
         }
     }
 
+
+    // This method is usefull for when you don't know the nodeId's to check if
+    // the server actually has Data to fetch from.
     void OpcUaCore::fetchDataFromAnyNode() {
         if (!isClientConnected())
             return;
 
-        const QString objectsNodeId = QStringLiteral("ns=0;i=85");
+        const QString objectsNodeId = QStringLiteral("ns=0;i=85"); // ns=0;i=85 is always the root in an opcua server.
         qDebug() << "fetchDataFromAnyNode: browsing Objects folder" << objectsNodeId;
         QOpcUaNode *objectsNode = m_client->node(objectsNodeId);
         if (!objectsNode) {
@@ -217,7 +220,6 @@ namespace opc{
             node->deleteLater(); // Clean, clean, clean!
         }, Qt::UniqueConnection);
 
-        qInfo() << "Did we make it outside the connect?";
 
         int req = node->readValueAttribute();
         if(req < 0){
@@ -225,8 +227,13 @@ namespace opc{
             node->deleteLater();
         }
 
-        qInfo() << "Blasphemy!";
+    }
 
+    void OpcUaCore::fetchDataFromMultipleNodes(const QStringList &nodeIds)
+    {
+        for(auto node : nodeIds){
+            fetchDataFromSingleNode(node);
+        }
     }
 
     bool OpcUaCore::isClientConnected(){

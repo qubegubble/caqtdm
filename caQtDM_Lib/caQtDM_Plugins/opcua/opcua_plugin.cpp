@@ -51,6 +51,46 @@ OPCUAPlugin::OPCUAPlugin()
     qDebug() << "OPCUAPlugin: Create";
 }
 
+// initialize our communicationlayer with everything you need
+int OPCUAPlugin::initCommunicationLayer(MutexKnobData *data, MessageWindow *messageWindow, QMap<QString, QString> options)
+{
+    mutexknobdataP = data;
+    messagewindowP = messageWindow;
+    mutexKnobdataPtr = data;
+    messageWindowPtr = messageWindow;
+    Channelcache.clear();
+
+    QString endpoint = options.value("opcua.endpoint", "opc.tcp://127.0.0.1:4840");
+
+    if(messageWindowPtr)
+        messageWindowPtr->postMsgEvent(QtDebugMsg, "OpcUaPlugin initialized.");
+
+    QObject::connect(m_core.data(), &opc::OpcUaCore::valueRead, [=](const QString &nodeId, const QVariant &value){
+        auto range = Channelcache.equal_range(nodeId);
+        for(auto it = range.first; it != range.second; ++it){
+            int idx = it.value();
+            knobData kData = mutexKnobdataPtr->GetMutexKnobData(idx);
+            QMutexLocker locker((QMutex *)kData.mutex);
+            if(!kData.edata.dataB){
+                kData.edata.dataB = malloc(sizeof(double));
+            }
+            *(double *)kData.edata.dataB = value.toDouble();
+            kData.edata.connected = 1;
+        }
+
+        if(messageWindowPtr){
+            QString msg = QString("OPCUA: [%1] = %2")
+                              .arg(nodeId)
+                              .arg(value.toString());
+            messageWindowPtr->postMsgEvent(QtDebugMsg, (char*)msg.toLatin1().constData());
+        }
+        qDebug() << "OPCUA: ValueRead: " << nodeId << "=" << value;
+    });
+
+    return m_core->connectOpc(endpoint) ? true : false;
+
+}
+
 // in this demo we update our interface here; normally you should update in from your controlsystem
 // take a look how monitors are treated in the epics3 plugin
 void OPCUAPlugin::updateInterface()
@@ -104,38 +144,6 @@ void  DemoPlugin::updateHardwork()
     for (i = listOfDoubles.begin(); i != listOfDoubles.end(); ++i) i.value()++;
 }
 #endif
-
-// initialize our communicationlayer with everything you need
-int OPCUAPlugin::initCommunicationLayer(MutexKnobData *data, MessageWindow *messageWindow, QMap<QString, QString> options)
-{
-    mutexknobdataP = data;
-    messagewindowP = messageWindow;
-    mutexKnobdataPtr = data;
-    messageWindowPtr = messageWindow;
-    Channelcache.clear();
-
-    QString endpoint = options.value("opcua.endpoint", "opc.tcp://127.0.0.1:4840");
-
-    if(messageWindowPtr)
-        messageWindowPtr->postMsgEvent(QtDebugMsg, "OpcUaPlugin initialized.");
-
-    QObject::connect(m_core.data(), &opc::OpcUaCore::valueRead, [=](const QString &nodeId, const QVariant &value){
-        auto range = Channelcache.equal_range(nodeId);
-        for(auto it = range.first; it != range.second; ++it){
-            int idx = it.value();
-            knobData kData = mutexKnobdataPtr->GetMutexKnobData(idx);
-            QMutexLocker locker((QMutex *)kData.mutex);
-            if(!kData.edata.dataB){
-                kData.edata.dataB = malloc(sizeof(double));
-            }
-            *(double *)kData.edata.dataB = value.toDouble();
-            kData.edata.connected = 1;
-        }
-    });
-
-    return m_core->connectOpc(endpoint) ? true : false;
-
-}
 
 // caQtDM_Lib will call this routine for defining a monitor
 int OPCUAPlugin::pvAddMonitor(int index, knobData *kData, int rate, int skip) {

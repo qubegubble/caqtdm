@@ -1,6 +1,7 @@
 QT -= gui
 QT += opcua
 QT += core
+QT += opcua
 
 TEMPLATE = lib
 CONFIG += staticlib
@@ -22,6 +23,4 @@ unix {
     target.path = $$[QT_INSTALL_PLUGINS]/generic
 }
 !isEmpty(target.path): INSTALLS += target
-
-LIBS += -L/usr/lib/x86_64-linux-gnu/qt5/plugins/opcua/ -lopen62541
 

@@ -14,7 +14,8 @@ namespace opc{
 
         connect(m_client, &QOpcUaClient::connected, this, &OpcUaCore::connected);
         connect(m_client, &QOpcUaClient::disconnected, this, &OpcUaCore::disconnected);
-        connect(m_client, &QOpcUaClient::errorChanged, this, [this](QOpcUaClient::ClientError error) {
+        connect(m_client, &QOpcUaClient::errorChanged, this,
+            [this](QOpcUaClient::ClientError error) {
             emit errorOccured(QString("Client error: %1").arg(static_cast<int>(error)));
         });
 

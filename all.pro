@@ -7,6 +7,8 @@ _QTHOME=$$(QTHOME)
 _EPICSBASE=$$(EPICS_BASE)
 _EPICSHOSTARCH=$$(EPICS_HOST_ARCH)
 
+INCLUDEPATH += $(OPEN62541HOME)
+
 include (caQtDM_Viewer/qtdefs.pri)
 
 isEmpty(_QTHOME){

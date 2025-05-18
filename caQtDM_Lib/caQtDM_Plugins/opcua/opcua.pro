@@ -9,7 +9,8 @@ contains(QT_VER_MAJ, 6) {
 
 CONFIG += warn_on
 CONFIG += release
-CONFIG += demo_plugin
+CONFIG += opcua_plugin
+CONFIG += c++13
 include (../../../caQtDM.pri)
 
 MOC_DIR = ./moc
@@ -24,7 +25,7 @@ HEADERS         = ../controlsinterface.h \
     opcua_plugin.h
 SOURCES         = \
     opcua_plugin.cpp
-TARGET          = demo_plugin
+TARGET          = opcua_plugin
 android {
    INCLUDEPATH += $(ANDROIDFUNCTIONSINCLUDE)
 }

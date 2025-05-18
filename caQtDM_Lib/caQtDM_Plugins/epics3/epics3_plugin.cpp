@@ -39,8 +39,8 @@ typedef struct _connectInfo {
 
 // global variables defined here for access through c routines in epicsSubs.c
 extern "C" {
- MutexKnobData* mutexKnobdataPtr;
- MessageWindow *messageWindowPtr;
+MutexKnobData* mutexKnobdataPtr;
+MessageWindow *messageWindowPtr;
 }
 
 QString Epics3Plugin::pluginName()
@@ -223,7 +223,7 @@ int Epics3Plugin::TerminateIO() {
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)
 #else
-    Q_EXPORT_PLUGIN2(Epics3Plugin, Epics3Plugin)
+Q_EXPORT_PLUGIN2(Epics3Plugin, Epics3Plugin)
 #endif
 
 

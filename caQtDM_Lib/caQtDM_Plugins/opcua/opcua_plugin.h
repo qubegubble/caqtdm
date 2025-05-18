@@ -25,12 +25,15 @@
 #ifndef OPCUAPLUGIN_H
 #define OPCUAPlugin_H
 
+#pragma once
+
 #include <QObject>
 #include <QMap>
 #include <QMutex>
 #include <QList>
 #include <QTimer>
 #include "controlsinterface.h"
+#include "opcua_core.h"
 
 //#define HARDWORK
 
@@ -65,8 +68,6 @@ public:
     int FlushIO();
     int TerminateIO();
 
- protected:
-
 private slots:
     void updateValues();
     void updateInterface();
@@ -76,6 +77,8 @@ private:
     MutexKnobData *mutexknobdataP;
     MessageWindow *messagewindowP;
     QMap<QString, double> listOfDoubles;
+    QMultiMap<QString, int> Channelcache;
+    QScopedPointer<opc::OpcUaCore> m_core;
     QList<int> listOfIndexes;
     double initValue;
     QTimer *timer, *timerValues;

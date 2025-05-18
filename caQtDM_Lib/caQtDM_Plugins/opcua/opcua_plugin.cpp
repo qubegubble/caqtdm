@@ -34,6 +34,12 @@
 // at the epics3 plugin
 
 // gives the plugin name back
+
+extern "C"{
+MutexKnobData* mutexKnobdataPtr;
+MessageWindow *messageWindowPtr;
+}
+
 QString OPCUAPlugin::pluginName()
 {
     return "opcua";
@@ -102,84 +108,66 @@ void  DemoPlugin::updateHardwork()
 // initialize our communicationlayer with everything you need
 int OPCUAPlugin::initCommunicationLayer(MutexKnobData *data, MessageWindow *messageWindow, QMap<QString, QString> options)
 {
-    qDebug() << "OPCUAPlugin: InitCommunicationLayer with options" << options;
-
     mutexknobdataP = data;
     messagewindowP = messageWindow;
+    mutexKnobdataPtr = data;
+    messageWindowPtr = messageWindow;
+    Channelcache.clear();
 
-    initValue = 0.0;
+    QString endpoint = options.value("opcua.endpoint", "opc.tcp://127.0.0.1:4840");
 
-    // we want to update our internal doubles every second
-    timerValues = new QTimer(this);
-    connect(timerValues, SIGNAL(timeout()), this, SLOT(updateValues()));
-    timerValues->start(1000);
+    if(messageWindowPtr)
+        messageWindowPtr->postMsgEvent(QtDebugMsg, "OpcUaPlugin initialized.");
 
-    // we want to update the interface every 2 seconds
-    timer = new QTimer(this);
-    connect(timer, SIGNAL(timeout()), this, SLOT(updateInterface()));
-    timer->start(2000);
+    QObject::connect(m_core.data(), &opc::OpcUaCore::valueRead, [=](const QString &nodeId, const QVariant &value){
+        auto range = Channelcache.equal_range(nodeId);
+        for(auto it = range.first; it != range.second; ++it){
+            int idx = it.value();
+            knobData kData = mutexKnobdataPtr->GetMutexKnobData(idx);
+            QMutexLocker locker((QMutex *)kData.mutex);
+            if(!kData.edata.dataB){
+                kData.edata.dataB = malloc(sizeof(double));
+            }
+            *(double *)kData.edata.dataB = value.toDouble();
+            kData.edata.connected = 1;
+        }
+    });
 
-    return true;
+    return m_core->connectOpc(endpoint) ? true : false;
+
 }
 
 // caQtDM_Lib will call this routine for defining a monitor
 int OPCUAPlugin::pvAddMonitor(int index, knobData *kData, int rate, int skip) {
-    Q_UNUSED(index);
-    Q_UNUSED(rate);
-    Q_UNUSED(skip);
-    QMutexLocker locker(&mutex);
-    QString key = kData->pv;
-
-    qDebug() << "OPCUAPlugin:pvAddMonitor" << kData->pv << kData->index;
-    double value = initValue;
-    initValue += 10;
-
-    // append device index to our internal list
-    listOfIndexes.append(kData->index);
-
-    // initial values into the doubles list
-    if(!listOfDoubles.contains(key)) listOfDoubles.insert(key, value);
-
+    QString nodeId = kData->pv;
+    if(!Channelcache.contains(nodeId, index)){
+        Channelcache.insert(nodeId, index);
+    }
+    m_core->fetchDataFromSingleNode(nodeId);
     return true;
 }
 
 // caQtDM_Lib will call this routine for getting rid of a monitor
 int OPCUAPlugin::pvClearMonitor(knobData *kData) {
-    QMutexLocker locker(&mutex);
-
-    qDebug() << "OPCUAPlugin:pvClearMonitor" << kData->pv << kData->index;
-    QString key = kData->pv;
-    if(!listOfDoubles.contains(key)) listOfDoubles.remove(key);
-    listOfIndexes.removeAll(kData->index);
-
+    Channelcache.remove(kData->pv, kData->index);
     return true;
 }
 
 int OPCUAPlugin::pvFreeAllocatedData(knobData *kData)
 {
-    //qDebug() << "OPCUAPlugin:pvFreeAllocatedData";
-    if (kData->edata.info != (void *) Q_NULLPTR) {
-        free(kData->edata.info);
-        kData->edata.info = (void*) Q_NULLPTR;
-    }
-    if(kData->edata.dataB != (void*) Q_NULLPTR) {
+    QMutexLocker locker((QMutex *)kData->mutex);
+    if (kData->edata.dataB) {
         free(kData->edata.dataB);
-        kData->edata.dataB = (void*) Q_NULLPTR;
+        kData->edata.dataB = nullptr;
     }
-
     return true;
 }
 
 // caQtDM_Lib will call this routine for setting data (see for more detail the epics3 plugin)
 int OPCUAPlugin::pvSetValue(char *pv, double rdata, int32_t idata, char *sdata, char *object, char *errmess, int forceType) {
-    Q_UNUSED(object);
-    Q_UNUSED(errmess);
-    Q_UNUSED(forceType);
-    QMutexLocker locker(&mutex);
-    qDebug() << "OPCUAPlugin:pvSetValue" << pv << rdata << idata << sdata;
-    QString key = pv;
-    if(listOfDoubles.contains(key)) listOfDoubles.insert(pv, rdata);
-    return true;
+    // Optional: You can implement write support here using m_core
+    qDebug() << "pvSetValue not implemented for OPC UA";
+    return false;
 }
 
 // caQtDM_Lib will call this routine for setting waveforms data (see for more detail the epics3 plugin)

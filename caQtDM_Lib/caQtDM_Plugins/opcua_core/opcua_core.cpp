@@ -20,6 +20,7 @@ namespace opc{
 
     }
 
+    // QT expects for you to clean up a client once it's not used anymore.
     OpcUaCore::~OpcUaCore()
     {
         if (m_client) {

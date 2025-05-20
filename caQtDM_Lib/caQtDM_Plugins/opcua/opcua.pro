@@ -34,3 +34,5 @@ android {
 LIBS += -L$$OUT_PWD/../opcua_core -lopcua_core
 INCLUDEPATH += $$PWD/../opcua_core
 DEPENDPATH += $$PWD/../opcua_core
+DESTDIR = $(CAQTDM_COLLECT)/controlsystems/
+

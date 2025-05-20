@@ -7,11 +7,16 @@ namespace opc{
     {
         m_client = m_provider.createClient("open62541");
 
+        QStringList backends = m_provider.availableBackends();
+
         if (!m_client) {
             emit errorOccured("Failed to create OPC UA client instance.");
             return;
         }
 
+        if(!backends.contains("open62541")){
+            emit errorOccured("Nah we don't have that here. Open62541");
+        }
         connect(m_client, &QOpcUaClient::connected, this, &OpcUaCore::connected);
         connect(m_client, &QOpcUaClient::disconnected, this, &OpcUaCore::disconnected);
         connect(m_client, &QOpcUaClient::errorChanged, this,

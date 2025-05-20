@@ -60,35 +60,44 @@ int OPCUAPlugin::initCommunicationLayer(MutexKnobData *data, MessageWindow *mess
     messageWindowPtr = messageWindow;
     Channelcache.clear();
 
+    // ✅ Properly initialize the core
+    if (!m_core)
+        m_core.reset(new opc::OpcUaCore());
+
     QString endpoint = options.value("opcua.endpoint", "opc.tcp://127.0.0.1:4840");
 
-    if(messageWindowPtr)
+    if (messageWindowPtr)
         messageWindowPtr->postMsgEvent(QtDebugMsg, "OpcUaPlugin initialized.");
 
-    QObject::connect(m_core.data(), &opc::OpcUaCore::valueRead, [=](const QString &nodeId, const QVariant &value){
+    // ✅ Now safe to connect
+    QObject::connect(m_core.data(), &opc::OpcUaCore::valueRead, [=](const QString &nodeId, const QVariant &value) {
         auto range = Channelcache.equal_range(nodeId);
-        for(auto it = range.first; it != range.second; ++it){
+        for (auto it = range.first; it != range.second; ++it) {
             int idx = it.value();
             knobData kData = mutexKnobdataPtr->GetMutexKnobData(idx);
             QMutexLocker locker((QMutex *)kData.mutex);
-            if(!kData.edata.dataB){
+            if (!kData.edata.dataB) {
                 kData.edata.dataB = malloc(sizeof(double));
             }
             *(double *)kData.edata.dataB = value.toDouble();
             kData.edata.connected = 1;
         }
 
-        if(messageWindowPtr){
-            QString msg = QString("OPCUA: [%1] = %2")
-                              .arg(nodeId)
-                              .arg(value.toString());
+        if (messageWindowPtr) {
+            QString msg = QString("OPCUA: [%1] = %2").arg(nodeId).arg(value.toString());
             messageWindowPtr->postMsgEvent(QtDebugMsg, (char*)msg.toLatin1().constData());
         }
-        qDebug() << "OPCUA: ValueRead: " << nodeId << "=" << value;
+        qDebug() << "OPCUA: ValueRead:" << nodeId << "=" << value;
     });
 
-    return m_core->connectOpc(endpoint) ? true : false;
+    if (!m_core || m_core.isNull()) {
+        if (messageWindowPtr)
+            messageWindowPtr->postMsgEvent(QtCriticalMsg, "OPCUA plugin: client not initialized or connected.");
+    }
 
+    m_core->connectOpc(endpoint);
+
+    return true;
 }
 
 // in this demo we update our interface here; normally you should update in from your controlsystem

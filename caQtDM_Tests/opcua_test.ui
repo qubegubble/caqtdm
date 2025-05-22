@@ -1,29 +1,92 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Form</class>
- <widget class="QWidget" name="Form">
+ <class>OpcUaChart</class>
+ <widget class="QWidget" name="OpcUaChart">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>300</width>
-    <height>100</height>
+    <width>800</width>
+    <height>600</height>
    </rect>
   </property>
+  <property name="windowTitle">
+   <string>OPC UA Live Chart (Dynamic Endpoint)</string>
+  </property>
   <layout class="QVBoxLayout" name="verticalLayout">
+
+   <!-- Display latest values as caLabels -->
    <item>
-    <widget class="caLabel" name="caLabel">
-     <property name="pv">
-      <string>ns=2;i=4</string>
+    <layout class="QHBoxLayout" name="horizontalLayoutLabels">
+     <item>
+      <widget class="QLabel" name="labelX">
+       <property name="text">
+        <string>X:</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="caLabel" name="caLabelX">
+       <property name="pv">
+        <string>opcua::opc.tcp://localhost:4841/freeopcua/server/ns=2;i=4</string>
+       </property>
+       <property name="text">
+        <string>0</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="labelY">
+       <property name="text">
+        <string>Y:</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="caLabel" name="caLabelY">
+       <property name="pv">
+        <string>opcua::opc.tcp://localhost:4841/freeopcua/server/ns=2;i=5</string>
+       </property>
+       <property name="text">
+        <string>0</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+
+   <!-- Live XY Plot using caStripPlot -->
+   <item>
+    <widget class="caStripPlot" name="xyPlot">
+     <property name="pvX">
+      <string>opcua::opc.tcp://localhost:4841/freeopcua/server/ns=2;i=4</string>
      </property>
-     <property name="text">
-      <string>Loading...</string>
+     <property name="pvY">
+      <string>opcua::opc.tcp://localhost:4841/freeopcua/server/ns=2;i=5</string>
+     </property>
+     <property name="title">
+      <string>Live OPC UA XY Plot</string>
+     </property>
+     <property name="timeSpan">
+      <double>30.0</double>
+     </property>
+     <property name="xMin">
+      <double>0.0</double>
+     </property>
+     <property name="xMax">
+      <double>100.0</double>
+     </property>
+     <property name="yMin">
+      <double>0.0</double>
+     </property>
+     <property name="yMax">
+      <double>100.0</double>
      </property>
     </widget>
    </item>
+
   </layout>
  </widget>
  <resources/>
  <connections/>
 </ui>
-

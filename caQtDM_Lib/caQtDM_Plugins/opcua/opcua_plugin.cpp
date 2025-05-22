@@ -60,25 +60,24 @@ int OPCUAPlugin::initCommunicationLayer(MutexKnobData *data, MessageWindow *mess
     messageWindowPtr = messageWindow;
     Channelcache.clear();
 
-    // ✅ Properly initialize the core
     if (!m_core)
         m_core.reset(new opc::OpcUaCore());
 
-    QString endpoint = options.value("opcua.endpoint", "opc.tcp://127.0.0.1:4840");
+    QString endpoint = options.value("opcua.endpoint");
+    if (endpoint.isEmpty()) {
+        if (messageWindowPtr)
+            messageWindowPtr->postMsgEvent(QtWarningMsg, "OPCUA plugin: No endpoint specified. Plugin loaded but not connected.");
+        return true;
+    }
 
-    if (messageWindowPtr)
-        messageWindowPtr->postMsgEvent(QtDebugMsg, "OpcUaPlugin initialized.");
-
-    // ✅ Now safe to connect
     QObject::connect(m_core.data(), &opc::OpcUaCore::valueRead, [=](const QString &nodeId, const QVariant &value) {
         auto range = Channelcache.equal_range(nodeId);
         for (auto it = range.first; it != range.second; ++it) {
             int idx = it.value();
             knobData kData = mutexKnobdataPtr->GetMutexKnobData(idx);
             QMutexLocker locker((QMutex *)kData.mutex);
-            if (!kData.edata.dataB) {
+            if (!kData.edata.dataB)
                 kData.edata.dataB = malloc(sizeof(double));
-            }
             *(double *)kData.edata.dataB = value.toDouble();
             kData.edata.connected = 1;
         }
@@ -90,15 +89,10 @@ int OPCUAPlugin::initCommunicationLayer(MutexKnobData *data, MessageWindow *mess
         qDebug() << "OPCUA: ValueRead:" << nodeId << "=" << value;
     });
 
-    if (!m_core || m_core.isNull()) {
-        if (messageWindowPtr)
-            messageWindowPtr->postMsgEvent(QtCriticalMsg, "OPCUA plugin: client not initialized or connected.");
-    }
-
     m_core->connectOpc(endpoint);
-
     return true;
 }
+
 
 // in this demo we update our interface here; normally you should update in from your controlsystem
 // take a look how monitors are treated in the epics3 plugin
@@ -155,14 +149,54 @@ void  DemoPlugin::updateHardwork()
 #endif
 
 // caQtDM_Lib will call this routine for defining a monitor
-int OPCUAPlugin::pvAddMonitor(int index, knobData *kData, int rate, int skip) {
-    QString nodeId = kData->pv;
-    if(!Channelcache.contains(nodeId, index)){
+int OPCUAPlugin::pvAddMonitor(int index, knobData *kData, int rate, int skip)
+{
+    if(messageWindowPtr){
+        messageWindowPtr->postMsgEvent(QtInfoMsg, "Is pvAddMonitor being called?");
+    }
+    QString fullPv = kData->pv;
+
+    QString endpoint;
+    QString nodeId;
+
+    if (fullPv.startsWith("opcua::")) {
+        QString pvContent = fullPv.mid(QString("opcua::").length());
+        int splitPos = pvContent.indexOf("/ns=");  // try to find node start
+        if (splitPos > 0) {
+            endpoint = pvContent.left(splitPos);
+            nodeId = pvContent.mid(splitPos + 1); // e.g. "ns=2;i=4"
+        } else {
+            if (messageWindowPtr)
+                messageWindowPtr->postMsgEvent(QtCriticalMsg,
+                                               "Invalid OPCUA PV format. Use: opcua::<endpoint>/ns=...");
+            return false;
+        }
+    } else {
+        nodeId = fullPv;
+    }
+
+    static QString lastEndpoint;
+    if (!endpoint.isEmpty() && endpoint != lastEndpoint) {
+        if (m_core)
+            m_core->disconnectOpc(); // optional
+        m_core->connectOpc(endpoint);
+        lastEndpoint = endpoint;
+        if (messageWindowPtr) {
+            QString msg = QString("OPCUA: Connected to %1").arg(endpoint);
+            messageWindowPtr->postMsgEvent(QtDebugMsg, (char*)msg.toLatin1().constData());
+        }
+    }
+
+    if (!Channelcache.contains(nodeId, index)) {
         Channelcache.insert(nodeId, index);
     }
+
     m_core->fetchDataFromSingleNode(nodeId);
+
     return true;
 }
+
+
 
 // caQtDM_Lib will call this routine for getting rid of a monitor
 int OPCUAPlugin::pvClearMonitor(knobData *kData) {

@@ -60,10 +60,14 @@ int OPCUAPlugin::initCommunicationLayer(MutexKnobData *data, MessageWindow *mess
     messageWindowPtr = messageWindow;
     Channelcache.clear();
 
+    if(messageWindowPtr){
+        messageWindowPtr->postMsgEvent(QtInfoMsg, "Info: OPCUA Plugin has been loaded.");
+    }
+
     if (!m_core)
         m_core.reset(new opc::OpcUaCore());
 
-    QString endpoint = options.value("opcua.endpoint");
+    QString endpoint = options.value("opcua.endpoint", "opc.tcp://localhost:4841/freeopcua/server/");
     if (endpoint.isEmpty()) {
         if (messageWindowPtr)
             messageWindowPtr->postMsgEvent(QtWarningMsg, "OPCUA plugin: No endpoint specified. Plugin loaded but not connected.");

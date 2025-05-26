@@ -22,17 +22,10 @@ INCLUDEPATH    += .
 INCLUDEPATH    += ../
 INCLUDEPATH    += ../../src
 HEADERS         = ../controlsinterface.h \
-    opcua_plugin.h
+    opcua_plugin.h opcua_core.h
 SOURCES         = \
-    opcua_plugin.cpp
+    opcua_plugin.cpp opcua_core.cpp
 TARGET          = opcua_plugin
 android {
    INCLUDEPATH += $(ANDROIDFUNCTIONSINCLUDE)
 }
-
-# Link against static core lib
-LIBS += -L$$OUT_PWD/../opcua_core -lopcua_core
-INCLUDEPATH += $$PWD/../opcua_core
-DEPENDPATH += $$PWD/../opcua_core
-DESTDIR = $(CAQTDM_COLLECT)/controlsystems/
-

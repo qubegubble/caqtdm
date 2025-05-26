@@ -23,7 +23,7 @@
  *    anton.mezger@psi.ch
  */
 #ifndef OPCUAPLUGIN_H
-#define OPCUAPlugin_H
+#define OPCUAPLUGIN_H
 
 #pragma once
 

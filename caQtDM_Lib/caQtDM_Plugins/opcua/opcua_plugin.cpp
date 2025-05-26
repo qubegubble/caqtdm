@@ -219,7 +219,6 @@ int OPCUAPlugin::pvAddMonitor(int index, knobData *kData, int rate, int skip)
     return true;
 }
 
-
 // caQtDM_Lib will call this routine for getting rid of a monitor
 int OPCUAPlugin::pvClearMonitor(knobData *kData) {
     Channelcache.remove(kData->pv, kData->index);

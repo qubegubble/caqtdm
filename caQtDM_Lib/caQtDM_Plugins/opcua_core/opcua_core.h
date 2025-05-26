@@ -31,6 +31,8 @@ namespace opc{
         void fetchDataFromAnyNode();
         void fetchDataFromSingleNode(const QString &nodeId);
         void fetchDataFromMultipleNodes(const QStringList &nodeIds);
+        void subscribeToNode(const QString &nodeId);
+        void clearAllSubscriptions();
         void browseRoot();
 
     signals:
@@ -46,6 +48,7 @@ namespace opc{
         bool m_endpointsHooked = false;
         bool isClientConnected();
         void browseObjectForVariables(const QString &objectNodeId);
+        QMap<QString, QOpcUaNode*> m_subscriptionNodes;
         void QOpcUaBrowseResult(QOpcUaNode *, void (*)(QVector<QOpcUaReferenceDescription>, QOpcUa::UaStatusCode), OpcUaCore *, QDebug);
 };
 }

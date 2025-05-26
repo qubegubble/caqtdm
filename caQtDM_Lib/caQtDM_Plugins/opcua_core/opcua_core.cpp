@@ -29,6 +29,7 @@ namespace opc{
     // QT expects for you to clean up a client once it's not used anymore.
     OpcUaCore::~OpcUaCore()
     {
+        clearAllSubscriptions();
         if (m_client) {
             m_client->disconnectFromEndpoint();
             delete m_client;
@@ -72,6 +73,80 @@ namespace opc{
         }
     }
 
+
+    void OpcUaCore::subscribeToNode(const QString &nodeId)
+    {
+        if (!isClientConnected()) {
+            emit errorOccured("Client is not connected.");
+            return;
+        }
+
+        if (m_subscriptionNodes.contains(nodeId)) {
+            qInfo() << "Already subscribed to node:" << nodeId;
+            return;
+        }
+
+        QOpcUaNode *node = m_client->node(nodeId);
+        if (!node) {
+            emit errorOccured("Failed to create node object for subscription: " + nodeId);
+            return;
+        }
+
+        node->readAttributes(QOpcUa::NodeAttribute::NodeClass);
+
+
+        connect(node, &QOpcUaNode::attributeRead, this, [=](QOpcUa::NodeAttributes attrs) {
+            if (attrs.testFlag(QOpcUa::NodeAttribute::NodeClass)) {
+                auto nodeClass = static_cast<QOpcUa::NodeClass>(
+                    node->attribute(QOpcUa::NodeAttribute::NodeClass).toInt());
+
+                if (nodeClass != QOpcUa::NodeClass::Variable) {
+                    emit errorOccured("Node " + nodeId + " is not a Variable. Subscription aborted.");
+                    node->deleteLater();
+                    return;
+                }
+
+                // Proceed with subscription now that it's safe
+                QOpcUaMonitoringParameters params;
+                params.setSamplingInterval(1000.0);
+                params.setMonitoringMode(QOpcUaMonitoringParameters::MonitoringMode::Reporting);
+                params.setSubscriptionType(QOpcUaMonitoringParameters::SubscriptionType::Shared);
+
+                if (!node->enableMonitoring(QOpcUa::NodeAttribute::Value, params)) {
+                    emit errorOccured("Failed to enable monitoring for node: " + nodeId);
+                    node->deleteLater();
+                    return;
+                }
+
+                connect(node, &QOpcUaNode::dataChangeOccurred, this,
+                        [this, nodeId](QOpcUa::NodeAttribute attr, const QVariant &value) {
+                            if (attr == QOpcUa::NodeAttribute::Value) {
+                                emit valueRead(nodeId, value);
+                            }
+                        });
+
+                m_subscriptionNodes.insert(nodeId, node);
+                qDebug() << "Subscription enabled for node:" << nodeId;
+            }
+        });
+    }
+
+    void OpcUaCore::clearAllSubscriptions()
+    {
+        qInfo() << "Clearing all OPC UA subscriptions...";
+
+        for (auto it = m_subscriptionNodes.begin(); it != m_subscriptionNodes.end(); ++it) {
+            QOpcUaNode *node = it.value();
+            if (node) {
+                node->disableMonitoring(QOpcUa::NodeAttribute::Value); // disable monitoring
+                node->disconnect(); // disconnect any signals/slots
+                node->deleteLater(); // safe deletion
+            }
+        }
+
+        m_subscriptionNodes.clear();
+        qInfo() << "All OPC UA subscriptions have been cleared.";
+    }
 
     // This method is usefull for when you don't know the nodeId's to check if
     // the server actually has Data to fetch from.

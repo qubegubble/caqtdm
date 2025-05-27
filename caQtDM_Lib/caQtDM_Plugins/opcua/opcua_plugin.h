@@ -79,6 +79,11 @@ private:
     QMap<QString, double> listOfDoubles;
     QMultiMap<QString, int> Channelcache;
     QScopedPointer<opc::OpcUaCore> m_core;
+    QMap<QString, std::shared_ptr<opc::OpcUaCore>> m_cores;
+    enum class ConnectionState { NotConnected, Connecting, Connected };
+    QMap<QString, ConnectionState> m_connectionState;
+    QMap<QString, QList<QString>> m_pendingSubscriptions;
+    QMutex m_mutex;
     QList<int> listOfIndexes;
     double initValue;
     QTimer *timer, *timerValues;

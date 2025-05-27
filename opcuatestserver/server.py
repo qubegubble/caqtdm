@@ -1,4 +1,3 @@
-# server.py
 import time
 import math
 import os
@@ -24,10 +23,14 @@ if __name__ == "__main__":
     obj1 = objects.add_object(idx, "Object1")
     var1 = obj1.add_variable(idx, "Variable1", 6.7)
     var1.set_writable()   # clients can write if they wish
+    # log the NodeId for Variable1
+    log.info("Object1.Variable1 NodeId: %s", var1.nodeid.to_string())
 
     obj2 = objects.add_object(idx, "Object2")
     var2 = obj2.add_variable(idx, "Variable2", -6.7)
     var2.set_writable()
+    # log the NodeId for Variable2
+    log.info("Object2.Variable2 NodeId: %s", var2.nodeid.to_string())
 
     log.info(f"Starting OPC UA Server at {endpoint}")
     server.start()

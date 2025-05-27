@@ -26,6 +26,8 @@
 #include <QThread>
 #include "opcua_plugin.h"
 #include "opcua_core.h"
+#include <memory>
+#include <QtConcurrent/QtConcurrent>
 
 // as defined in knobDefines.h
 //caType {caSTRING	= 0, caINT = 1, caFLOAT = 2, caENUM = 3, caCHAR = 4, caLONG = 5, caDOUBLE = 6};
@@ -68,35 +70,6 @@ int OPCUAPlugin::initCommunicationLayer(MutexKnobData *data, MessageWindow *mess
     if (!m_core)
         m_core.reset(new opc::OpcUaCore());
 
-    QString endpoint = options.value("opcua.endpoint", "opc.tcp://localhost:4841/freeopcua/server/");
-    if (endpoint.isEmpty()) {
-        if (messageWindowPtr){
-            QString msg="OPCUA plugin: No endpoint specified. Plugin loaded but not connected.";
-            messageWindowPtr->postMsgEvent(QtWarningMsg,(char *) qasc(msg));
-        }
-        return true;
-    }
-
-    QObject::connect(m_core.data(), &opc::OpcUaCore::valueRead, [=](const QString &nodeId, const QVariant &value) {
-        auto range = Channelcache.equal_range(nodeId);
-        for (auto it = range.first; it != range.second; ++it) {
-            int idx = it.value();
-            knobData kData = mutexKnobdataPtr->GetMutexKnobData(idx);
-            QMutexLocker locker((QMutex *)kData.mutex);
-            if (!kData.edata.dataB)
-                kData.edata.dataB = malloc(sizeof(double));
-            *(double *)kData.edata.dataB = value.toDouble();
-            kData.edata.connected = 1;
-        }
-
-        if (messageWindowPtr) {
-            QString msg = QString("OPCUA: [%1] = %2").arg(nodeId).arg(value.toString());
-            messageWindowPtr->postMsgEvent(QtDebugMsg, (char*)msg.toLatin1().constData());
-        }
-        qDebug() << "OPCUA: ValueRead:" << nodeId << "=" << value;
-    });
-
-    m_core->connectOpc(endpoint);
     return true;
 }
 
@@ -126,7 +99,8 @@ void OPCUAPlugin::updateInterface()
             kData->edata.rvalue = newValue;
             kData->edata.fieldtype = caDOUBLE;
             kData->edata.connected = true;
-            kData->edata.accessR = kData->edata.accessW = true;
+            kData->edata.accessR = true;
+            kData->edata.accessW = false;
             kData->edata.monitorCount++;
             mutexknobdataP->SetMutexKnobData(kData->index, *kData);
             mutexknobdataP->SetMutexKnobDataReceived(kData);
@@ -158,66 +132,113 @@ void  DemoPlugin::updateHardwork()
 // caQtDM_Lib will call this routine for defining a monitor
 int OPCUAPlugin::pvAddMonitor(int index, knobData *kData, int rate, int skip)
 {
-    if (messageWindowPtr) {
-        QString msg = "Is pvAddMonitor being called?";
-        messageWindowPtr->postMsgEvent(QtInfoMsg, (char *)qasc(msg));
+    QString raw = QString::fromLatin1(kData->pv);
+
+    int sep = raw.indexOf("::");
+    if (sep >= 0) raw = raw.mid(sep + 2);
+    if (raw.startsWith("opcua://", Qt::CaseInsensitive)) {
+        raw = raw.mid(QString("opcua://").length());
     }
 
-    QString fullPv = kData->pv;
-    QString endpoint;
-    QString nodeId;
+    int splitPos = raw.lastIndexOf("/ns=");
+    if (splitPos < 0) {
+        if (messageWindowPtr) {
+            QString msg = "Invalid OPCUA PV format. Expected <endpoint>/ns=...; got: " + raw;
+            messageWindowPtr->postMsgEvent(QtCriticalMsg, (char*)msg.toLatin1().constData());
+        }
+        return false;
+    }
 
-    if (fullPv.startsWith("opcua::")) {
-        QString pvContent = fullPv.mid(QString("opcua::").length());
-        int splitPos = pvContent.indexOf("/ns=");
-        if (splitPos > 0) {
-            endpoint = pvContent.left(splitPos).trimmed();
-            nodeId = pvContent.mid(splitPos + 1).trimmed();  // e.g. "ns=2;i=4"
-        } else {
-            if (messageWindowPtr) {
-                QString msg = "Invalid OPCUA PV format. Use: opcua::<endpoint>/ns=...";
-                messageWindowPtr->postMsgEvent(QtCriticalMsg, (char *)qasc(msg));
-            }
-            return false;
+    QString endpoint = raw.left(splitPos);
+    QString nodeId = raw.mid(splitPos + 1).trimmed();
+    Channelcache.insert(nodeId, index);
+
+    std::shared_ptr<opc::OpcUaCore> core;
+    {
+        QMutexLocker lock(&m_mutex);
+        if (!m_cores.contains(endpoint)) {
+            m_cores[endpoint] = std::make_shared<opc::OpcUaCore>();
+            m_connectionState[endpoint] = ConnectionState::NotConnected;
+
+            auto core = m_cores[endpoint];
+            QObject::connect(core.get(), &opc::OpcUaCore::valueRead, [=](const QString &nodeId, const QVariant &value) {
+                auto range = Channelcache.equal_range(nodeId);
+                for (auto it = range.first; it != range.second; ++it) {
+                    int idx = it.value();
+                    knobData kData = mutexKnobdataPtr->GetMutexKnobData(idx);
+                    QMutexLocker locker((QMutex *)kData.mutex);
+                    kData.edata.rvalue = value.toDouble();
+                    kData.edata.connected = 1;
+                    kData.edata.fieldtype = caDOUBLE;
+                    kData.edata.accessR = true;
+                    kData.edata.accessW = false;
+                    kData.edata.monitorCount++;
+                    mutexknobdataP->SetMutexKnobData(kData.index, kData);
+                    mutexknobdataP->SetMutexKnobDataReceived(&kData);
+                }
+
+                if (messageWindowPtr) {
+                    QString msg = QString("OPCUA: [%1] = %2").arg(nodeId).arg(value.toString());
+                    messageWindowPtr->postMsgEvent(QtDebugMsg, (char*)msg.toLatin1().constData());
+                }
+            });
+        }
+        core = m_cores[endpoint];
+    }
+
+    QMutexLocker lock(&m_mutex);
+    ConnectionState state = m_connectionState[endpoint];
+
+    if (state == ConnectionState::Connected) {
+        core->subscribeToNode(nodeId);
+        if (messageWindowPtr) {
+            QString msg = QString("OPCUA: Subscribed %1 on %2 (immediate)").arg(nodeId, endpoint);
+            messageWindowPtr->postMsgEvent(QtDebugMsg, (char*)msg.toLatin1().constData());
         }
     } else {
-        nodeId = fullPv.trimmed(); // fallback; maybe already formatted
-    }
+        // Store subscription to do later
+        m_pendingSubscriptions[endpoint].append(nodeId);
 
-    // Log what we're actually going to use
-    qDebug() << "[pvAddMonitor] Parsed endpoint:" << endpoint << "nodeId:" << nodeId;
+        if (state == ConnectionState::NotConnected) {
+            m_connectionState[endpoint] = ConnectionState::Connecting;
 
-    static QString lastEndpoint;
-    if (!endpoint.isEmpty() && endpoint != lastEndpoint) {
-        if (m_core)
-            m_core->disconnectOpc();
+            // Start connection
+            core->connectOpc(endpoint, [this, endpoint, core](bool success) {
+                QMutexLocker lock(&m_mutex);
+                if (!success) {
+                    m_connectionState[endpoint] = ConnectionState::NotConnected;
+                    if (messageWindowPtr) {
+                        QString err = QString("OPCUA: Failed to connect to %1").arg(endpoint);
+                        messageWindowPtr->postMsgEvent(QtCriticalMsg, (char*)err.toLatin1().constData());
+                    }
+                    return;
+                }
 
-        if (!m_core->connectOpc(endpoint)) {
-            if (messageWindowPtr) {
-                QString msg = "Failed to connect to endpoint: " + endpoint;
-                messageWindowPtr->postMsgEvent(QtCriticalMsg, (char *)qasc(msg));
-            }
-            return false;
+                m_connectionState[endpoint] = ConnectionState::Connected;
+
+                if (messageWindowPtr) {
+                    QString info = QString("OPCUA: Connected to %1").arg(endpoint);
+                    messageWindowPtr->postMsgEvent(QtInfoMsg, (char*)info.toLatin1().constData());
+                }
+
+                // Now subscribe to all pending nodeIds
+                for (const QString& nodeId : m_pendingSubscriptions[endpoint]) {
+                    core->subscribeToNode(nodeId);
+                    if (messageWindowPtr) {
+                        QString msg = QString("OPCUA: Subscribed %1 on %2").arg(nodeId, endpoint);
+                        messageWindowPtr->postMsgEvent(QtDebugMsg, (char*)msg.toLatin1().constData());
+                    }
+                }
+                m_pendingSubscriptions[endpoint].clear();
+            });
         }
-
-        lastEndpoint = endpoint;
-        if (messageWindowPtr) {
-            QString msg = QString("OPCUA: Connected to %1").arg(endpoint);
-            messageWindowPtr->postMsgEvent(QtDebugMsg, (char *)msg.toLatin1().constData());
-        }
-    }
-
-    if (!Channelcache.contains(nodeId, index)) {
-        Channelcache.insert(nodeId, index);
-    }
-
-    // Subscribe with validation (NodeClass check happens in subscribeToNode)
-    if (m_core) {
-        m_core->subscribeToNode(nodeId);
     }
 
     return true;
 }
+
+
+
 
 // caQtDM_Lib will call this routine for getting rid of a monitor
 int OPCUAPlugin::pvClearMonitor(knobData *kData) {

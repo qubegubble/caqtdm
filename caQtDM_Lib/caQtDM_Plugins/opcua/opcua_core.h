@@ -18,38 +18,40 @@
 
 namespace opc{
 
-    class OpcUaCore : public QObject
-    {
-        Q_OBJECT
+class OpcUaCore : public QObject
+{
+    Q_OBJECT
 
-    public:
-        explicit OpcUaCore(QObject *parent = nullptr);
-        ~OpcUaCore();
+public:
+    explicit OpcUaCore(QObject *parent = nullptr);
+    ~OpcUaCore();
 
-        bool connectOpc(const QString &url);
-        void disconnectOpc();
-        void fetchDataFromAnyNode();
-        void fetchDataFromSingleNode(const QString &nodeId);
-        void fetchDataFromMultipleNodes(const QStringList &nodeIds);
-        void subscribeToNode(const QString &nodeId);
-        void clearAllSubscriptions();
-        void browseRoot();
+    bool connectOpc(const QString &url);
+    bool connectOpc(const QString &url, std::function<void(bool)> onConnected);
+    void disconnectOpc();
+    void fetchDataFromAnyNode();
+    void fetchDataFromSingleNode(const QString &nodeId);
+    void fetchDataFromMultipleNodes(const QStringList &nodeIds);
+    void subscribeToNode(const QString &nodeId);
+    void subscribeToMultipleNodes(const QStringList &nodeIds);
+    void clearAllSubscriptions();
+    void browseRoot();
 
-    signals:
-        void connected();
-        void disconnected();
-        void errorOccured(const QString &message);
-        void valueRead(const QString nodeId, const QVariant &value);
-        void valuesRead(const QVector<QVariant> &values);
+signals:
+    void connected();
+    void disconnected();
+    void errorOccured(const QString &message);
+    void valueRead(const QString nodeId, const QVariant &value);
+    void valuesRead(const QVector<QVariant> &values);
 
-    private:
-        QOpcUaProvider m_provider;
-        QOpcUaClient *m_client;
-        bool m_endpointsHooked = false;
-        bool isClientConnected();
-        void browseObjectForVariables(const QString &objectNodeId);
-        QMap<QString, QOpcUaNode*> m_subscriptionNodes;
-        void QOpcUaBrowseResult(QOpcUaNode *, void (*)(QVector<QOpcUaReferenceDescription>, QOpcUa::UaStatusCode), OpcUaCore *, QDebug);
+private:
+    QOpcUaProvider m_provider;
+    QOpcUaClient *m_client;
+    bool m_endpointsHooked = false;
+    bool isClientConnected();
+    void browseObjectForVariables(const QString &objectNodeId);
+    QMap<QString, QOpcUaNode*> m_subscriptionNodes;
+    void QOpcUaBrowseResult(QOpcUaNode *, void (*)(QVector<QOpcUaReferenceDescription>, QOpcUa::UaStatusCode), OpcUaCore *, QDebug);
 };
 }
 

@@ -8,9 +8,22 @@ services:
     ports:
       - "4841:4840"
     environment:
-      - PORT=4840           # container's internal port
-      - PUBLIC_PORT=4841    # host-exposed port
-      - PUBLIC_HOST=localhost  # for local testing from host
+      - PORT=4840
+      - PUBLIC_PORT=4841
+      - PUBLIC_HOST=localhost
+    networks:
+      - app-network
+
+  server2:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    ports:
+      - "4842:4840"
+    environment:
+      - PORT=4840
+      - PUBLIC_PORT=4842
+      - PUBLIC_HOST=localhost
     networks:
       - app-network
 

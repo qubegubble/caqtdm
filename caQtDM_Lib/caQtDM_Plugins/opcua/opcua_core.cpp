@@ -1,4 +1,5 @@
 #include "opcua_core.h"
+#include "qeventloop.h"
 #include "qrandom.h"
 #include <QDebug>
 namespace opc{
@@ -30,12 +31,19 @@ OpcUaCore::OpcUaCore(QObject *parent)
 OpcUaCore::~OpcUaCore()
 {
     clearAllSubscriptions();
+
     if (m_client) {
-        m_client->disconnectFromEndpoint();
+        if (m_client->state() != QOpcUaClient::Disconnected) {
+            QEventLoop loop;
+            connect(m_client, &QOpcUaClient::disconnected, &loop, &QEventLoop::quit);
+            m_client->disconnectFromEndpoint();
+            loop.exec();
+        }
         delete m_client;
         m_client = nullptr;
     }
 }
+
 
 bool OpcUaCore::connectOpc(const QString &url, std::function<void(bool)> onConnected)
 {

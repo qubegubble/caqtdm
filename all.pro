@@ -40,7 +40,6 @@ TEMPLATE = subdirs
 SUBDIRS += caQtDM_QtControls caQtDM_Lib caQtDM_Viewer
 SUBDIRS += qtcontrols_controllers qtcontrols_graphics qtcontrols_monitors qtcontrols_utilities
 SUBDIRS += caQtDM_Plugins caQtDM_Parsers
-SUBDIRS += tests
 
 android {
   SUBDIRS += caQtDM_AndroidFunctions

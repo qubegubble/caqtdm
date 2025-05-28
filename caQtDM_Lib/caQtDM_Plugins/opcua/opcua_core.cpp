@@ -1,3 +1,27 @@
+/*
+ *  This file is part of the caQtDM Framework, it was developed in colaboration with
+ *  the University of Lucerene (HSLU) as a Economy Project and the Paul Scherrer Institut.
+ *
+ *  The caQtDM Framework is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  The caQtDM Framework is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with the caQtDM Framework.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *  Copyright (c) 2025
+ *
+ *  Authors:
+ *    Hrvat Leo
+ *    Joel Müller
+ */
+
 #include "opcua_core.h"
 #include "qeventloop.h"
 #include "qrandom.h"
@@ -377,6 +401,30 @@ bool OpcUaCore::isClientConnected(){
         return false;
     }
     return true;
+}
+
+bool OpcUaCore::hasSubscription(const QString &nodeId) const {
+    return m_subscriptionNodes.contains(nodeId);
+}
+
+void OpcUaCore::unsubscribeFromNode(const QString &nodeId) {
+    if (!m_subscriptionNodes.contains(nodeId))
+        return;
+
+    QOpcUaNode *node = m_subscriptionNodes[nodeId];
+    if (node) {
+        node->disableMonitoring(QOpcUa::NodeAttribute::Value);
+        node->deleteLater();
+    }
+    m_subscriptionNodes.remove(nodeId);
+}
+
+void OpcUaCore::disableMonitoringForNode(const QString &nodeId){
+    if (!m_subscriptionNodes.contains(nodeId)) return;
+    QOpcUaNode *node = m_subscriptionNodes[nodeId];
+    if (node) {
+        node->disableMonitoring(QOpcUa::NodeAttribute::Value);
+    }
 }
 
 }

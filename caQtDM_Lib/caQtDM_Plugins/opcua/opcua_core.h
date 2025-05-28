@@ -1,3 +1,27 @@
+/*
+ *  This file is part of the caQtDM Framework, it was developed in colaboration with
+ *  the University of Lucerene (HSLU) as a Economy Project and the Paul Scherrer Institut.
+ *
+ *  The caQtDM Framework is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  The caQtDM Framework is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with the caQtDM Framework.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *  Copyright (c) 2025
+ *
+ *  Authors:
+ *    Hrvat Leo
+ *    Joel Müller
+ */
+
 #ifndef OPCUA_CLIENT_H
 #define OPCUA_CLIENT_H
 
@@ -36,6 +60,9 @@ public:
     void subscribeToMultipleNodes(const QStringList &nodeIds);
     void clearAllSubscriptions();
     void browseRoot();
+    bool hasSubscription(const QString &nodeId) const;
+    void unsubscribeFromNode(const QString &nodeId);
+    void disableMonitoringForNode(const QString &nodeId);
 
 signals:
     void connected();

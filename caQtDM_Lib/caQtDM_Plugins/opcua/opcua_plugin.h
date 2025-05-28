@@ -1,6 +1,6 @@
 /*
- *  This file is part of the caQtDM Framework, developed at the Paul Scherrer Institut,
- *  Villigen, Switzerland
+ *  This file is part of the caQtDM Framework, it was developed in colaboration with
+ *  the University of Lucerene (HSLU) as a Economy Project and the Paul Scherrer Institut.
  *
  *  The caQtDM Framework is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -15,12 +15,11 @@
  *  You should have received a copy of the GNU General Public License
  *  along with the caQtDM Framework.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Copyright (c) 2010 - 2014
+ *  Copyright (c) 2025
  *
- *  Author:
- *    Anton Mezger
- *  Contact details:
- *    anton.mezger@psi.ch
+ *  Authors:
+ *    Hrvat Leo
+ *    Joel Müller
  */
 #ifndef OPCUAPLUGIN_H
 #define OPCUAPLUGIN_H
@@ -32,6 +31,7 @@
 #include <QMutex>
 #include <QList>
 #include <QTimer>
+#include <QtGlobal>
 #include "controlsinterface.h"
 #include "opcua_core.h"
 
@@ -53,6 +53,7 @@ public:
     QString pluginName();
     OPCUAPlugin();
 
+    QString findNodeIdByIndex(int index);
     int initCommunicationLayer(MutexKnobData *data, MessageWindow *messageWindow, QMap<QString, QString> options);
     int pvAddMonitor(int index, knobData *kData, int rate, int skip);
     int pvClearMonitor(knobData *kData);
@@ -67,6 +68,9 @@ public:
     int pvDisconnect(knobData *kData);
     int FlushIO();
     int TerminateIO();
+    bool resolveConnectionString(knobData *kData, QString &endpoint, QString &nodeId);
+    caType generateCaTypeFromVariant(const QVariant &value);
+    void updateKnobDataFromVariant(knobData &kData, const QVariant &value);
 
 private slots:
     void updateValues();
@@ -87,6 +91,10 @@ private:
     QList<int> listOfIndexes;
     double initValue;
     QTimer *timer, *timerValues;
+
+    QStringList opcua_database_file;
+    QMap<QString, QString> optionsP;
+    QMap<QString, QString> opcua_translation_map;
 #ifdef HARDWORK
     void updateHardwork();
 #endif

@@ -1,6 +1,6 @@
 /*
- *  This file is part of the caQtDM Framework, developed at the Paul Scherrer Institut,
- *  Villigen, Switzerland
+ *  This file is part of the caQtDM Framework, it was developed in colaboration with
+ *  the University of Lucerene (HSLU) as a Economy Project and the Paul Scherrer Institut.
  *
  *  The caQtDM Framework is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -15,28 +15,23 @@
  *  You should have received a copy of the GNU General Public License
  *  along with the caQtDM Framework.  If not, see <http://www.gnu.org/licenses/>.
  *
- *  Copyright (c) 2010 - 2014
+ *  Copyright (c) 2025
  *
- *  Author:
- *    Anton Mezger
- *  Contact details:
- *    anton.mezger@psi.ch
+ *  Authors:
+ *    Hrvat Leo
+ *    Joel Müller
  */
 #include <QDebug>
 #include <QThread>
 #include "opcua_plugin.h"
 #include "opcua_core.h"
+#include <QSettings>
 #include <memory>
+#include "fileFunctions.h"
+#include "searchfile.h"
 #include <QtConcurrent/QtConcurrent>
-
-// as defined in knobDefines.h
-//caType {caSTRING	= 0, caINT = 1, caFLOAT = 2, caENUM = 3, caCHAR = 4, caLONG = 5, caDOUBLE = 6};
-
-// this demo plugin just gives you an idea how to use a plugin; for more details you should take a look
-// at the epics3 plugin
-
-// gives the plugin name back
 #define qasc(x) x.toLatin1().constData()
+
 extern "C"{
 MutexKnobData* mutexKnobdataPtr;
 MessageWindow *messageWindowPtr;
@@ -56,11 +51,74 @@ OPCUAPlugin::OPCUAPlugin()
 // initialize our communicationlayer with everything you need
 int OPCUAPlugin::initCommunicationLayer(MutexKnobData *data, MessageWindow *messageWindow, QMap<QString, QString> options)
 {
+    qDebug() << "OPCUA Plugin: InitCommunicationLayer with options " << options;
+
     mutexknobdataP = data;
     messagewindowP = messageWindow;
     mutexKnobdataPtr = data;
     messageWindowPtr = messageWindow;
-    Channelcache.clear();
+    optionsP=options;
+
+    QStringList opcua_database_files;
+
+    QString url = (QString) qgetenv("CAQTM_URL_DISPLAY_PATH");
+    qDebug() << "URL: " << url;
+    QString database_file = (QString) qgetenv("CAQTDM_OPCUA_DATABASE");
+
+    opcua_database_files.append(database_file.split(","));
+
+    if(optionsP.value("OPCUA_DATABASE", "").isEmpty())
+        opcua_database_files.append(optionsP.value("OPCUA_DATABASE", ""));
+
+    fileFunctions fileFunction;
+    foreach(QString opcua_database_file, opcua_database_files){
+        if(!url.isEmpty()){
+            fileFunction.checkFileAndDownload(opcua_database_file, url);
+        }
+        searchFile *s = new searchFile(opcua_database_file);
+        QString fileNameFound = s->findFile();
+
+        delete s;
+
+        if(!fileNameFound.isEmpty()){
+            QFile file(fileNameFound);
+            if(file.open(QIODevice::ReadOnly)){
+                QString msg = "opcua translation found: ";
+                msg.append(fileNameFound);
+                if(messagewindowP != Q_NULLPTR) messagewindowP->postMsgEvent(QtDebugMsg, (char*)msg.toLatin1().constData());
+
+                QTextStream in(&file);
+
+                while(!in.atEnd()){
+                    QString line = in.readLine();
+                    if(!line.trimmed().startsWith("#")){
+                        int equalIndex = line.indexOf("="); // Since Node Id's have '=' in them we have to make sure to only split at the first equal sign.
+                        if(equalIndex > 0){
+                        QString key = line.left(equalIndex).trimmed();
+                        QString val = line.mid(equalIndex + 1).trimmed();
+                        opcua_translation_map.insert(key, val);
+                        }
+                    }
+                }
+                file.close();
+            }
+        }
+
+    }
+
+    if (messageWindowPtr) {
+        for (const QString &file : opcua_database_files) {
+            QString msg = "OPCUA: Loaded database file: " + file;
+            messageWindowPtr->postMsgEvent(QtDebugMsg, (char*)msg.toLatin1().constData());
+        }
+    }
+
+    if (messageWindowPtr) {
+        for (auto it = opcua_translation_map.constBegin(); it != opcua_translation_map.constEnd(); ++it) {
+            QString msg = QString("OPCUA: %1 => %2").arg(it.key(), it.value());
+            messageWindowPtr->postMsgEvent(QtDebugMsg, (char*)msg.toLatin1().constData());
+        }
+    }
 
     if(messageWindowPtr){
         QString msg= "Info: OPCUA Plugin has been loaded.";
@@ -73,66 +131,22 @@ int OPCUAPlugin::initCommunicationLayer(MutexKnobData *data, MessageWindow *mess
     return true;
 }
 
-
-// in this demo we update our interface here; normally you should update in from your controlsystem
-// take a look how monitors are treated in the epics3 plugin
-void OPCUAPlugin::updateInterface()
-{
-    double newValue = 0.0;
-
-    QMutexLocker locker(&mutex);
-
-    // go through our devices
-    foreach(int index, listOfIndexes) {
-        knobData* kData = mutexknobdataP->GetMutexKnobDataPtr(index);
-        if((kData != (knobData *) Q_NULLPTR) && (kData->index != -1)) {
-            QString key = kData->pv;
-
-            // find this pv in our internal double values list (assume for now we are only treating doubles)
-            // and increment its value
-            QMap<QString, double>::iterator i = listOfDoubles.find(key);
-            while (i !=listOfDoubles.end() && i.key() == key) {
-                newValue = i.value();
-                break;
-            }
-            // update some data
-            kData->edata.rvalue = newValue;
-            kData->edata.fieldtype = caDOUBLE;
-            kData->edata.connected = true;
-            kData->edata.accessR = true;
-            kData->edata.accessW = false;
-            kData->edata.monitorCount++;
-            mutexknobdataP->SetMutexKnobData(kData->index, *kData);
-            mutexknobdataP->SetMutexKnobDataReceived(kData);
-        }
-    }
-}
-
-// in this demo we update our values here
-void OPCUAPlugin::updateValues()
-{
-    QMutexLocker locker(&mutex);
-#ifndef HARDWORK
-    QMap<QString, double>::iterator i;
-    for (i = listOfDoubles.begin(); i != listOfDoubles.end(); ++i) i.value()++;
-#else
-    QtConcurrent::run(this, &DemoPlugin::updateHardwork);
-#endif
-}
-
-#ifdef HARDWORK
-void  DemoPlugin::updateHardwork()
-{
-    qDebug() << "hardwork";
-    QMap<QString, double>::iterator i;
-    for (i = listOfDoubles.begin(); i != listOfDoubles.end(); ++i) i.value()++;
-}
-#endif
-
 // caQtDM_Lib will call this routine for defining a monitor
 int OPCUAPlugin::pvAddMonitor(int index, knobData *kData, int rate, int skip)
 {
-    QString raw = QString::fromLatin1(kData->pv);
+    Q_UNUSED(rate);
+    Q_UNUSED(skip);
+
+    QString key = QString::fromLatin1(kData->pv).trimmed();
+    QString raw = opcua_translation_map.value(key).trimmed();
+
+    if(raw.isEmpty()){
+        if(messageWindowPtr){
+            QString msg = QString("OPCUA: No mapping found for key: %1").arg(key);
+            messageWindowPtr->postMsgEvent(QtCriticalMsg, (char*)msg.toLatin1().constData());
+        }
+        return false;
+    }
 
     int sep = raw.indexOf("::");
     if (sep >= 0) raw = raw.mid(sep + 2);
@@ -166,13 +180,9 @@ int OPCUAPlugin::pvAddMonitor(int index, knobData *kData, int rate, int skip)
                 for (auto it = range.first; it != range.second; ++it) {
                     int idx = it.value();
                     knobData kData = mutexKnobdataPtr->GetMutexKnobData(idx);
-                    QMutexLocker locker((QMutex *)kData.mutex);
-                    kData.edata.rvalue = value.toDouble();
-                    kData.edata.connected = 1;
-                    kData.edata.fieldtype = caDOUBLE;
-                    kData.edata.accessR = true;
-                    kData.edata.accessW = false;
-                    kData.edata.monitorCount++;
+
+                    updateKnobDataFromVariant(kData, value); // Refactored into seperate Method to increase readability
+
                     mutexknobdataP->SetMutexKnobData(kData.index, kData);
                     mutexknobdataP->SetMutexKnobDataReceived(&kData);
                 }
@@ -238,11 +248,38 @@ int OPCUAPlugin::pvAddMonitor(int index, knobData *kData, int rate, int skip)
 }
 
 
-
-
 // caQtDM_Lib will call this routine for getting rid of a monitor
 int OPCUAPlugin::pvClearMonitor(knobData *kData) {
-    Channelcache.remove(kData->pv, kData->index);
+
+    QMutexLocker lock(&m_mutex);
+
+    int index = kData->index;
+    QString nodeId = findNodeIdByIndex(index);
+
+    if (nodeId.isEmpty()) {
+        if (messageWindowPtr) {
+            QString msg = QString("OPCUA: No nodeId found for index %1").arg(index);
+            messageWindowPtr->postMsgEvent(QtDebugMsg, (char*)msg.toLatin1().constData());
+        }
+        return false;
+    }
+
+    // Remove from Channelcache
+    Channelcache.remove(nodeId, index);
+
+    // Find which endpoint this node belongs to
+    for (auto it = m_cores.begin(); it != m_cores.end(); ++it) {
+        auto core = it.value();
+        if (core && core->hasSubscription(nodeId)) {
+            core->unsubscribeFromNode(nodeId);
+            if (messageWindowPtr) {
+                QString msg = QString("OPCUA: Unsubscribed %1 on %2").arg(nodeId, it.key());
+                messageWindowPtr->postMsgEvent(QtDebugMsg, (char*)msg.toLatin1().constData());
+            }
+            break;
+        }
+    }
+
     return true;
 }
 
@@ -298,28 +335,79 @@ int OPCUAPlugin::pvGetDescription(char *pv, char *description) {
 }
 
 // next two routines are used to stop and restart the monitoring (used in case of tabWidgets in the display)
-int OPCUAPlugin::pvClearEvent(void * ptr) {
-    Q_UNUSED(ptr);
-    qDebug() << "OPCUAPlugin:pvClearEvent";
+int OPCUAPlugin::pvClearEvent(void * ptr)
+{
+
+    knobData *kData = static_cast<knobData *>(ptr);
+    QString endpoint, nodeId;
+    if (!resolveConnectionString(kData, endpoint, nodeId)) return false;
+
+    QMutexLocker locker(&m_mutex);
+    if (m_cores.contains(endpoint)) {
+        m_cores[endpoint]->disableMonitoringForNode(nodeId);  // must exist in your OpcUaCore
+        qDebug() << "OPCUAPlugin:pvClearEvent - paused monitoring for" << nodeId;
+    }
+
     return true;
 }
 
-int OPCUAPlugin::pvAddEvent(void * ptr) {
-    Q_UNUSED(ptr);
-    qDebug() << "OPCUAPlugin:pvAddEvent";
+int OPCUAPlugin::pvAddEvent(void * ptr)
+{
+
+    knobData *kData = static_cast<knobData *>(ptr);
+    QString endpoint, nodeId;
+    if (!resolveConnectionString(kData, endpoint, nodeId)) return false;
+
+    QMutexLocker locker(&m_mutex);
+    if (m_cores.contains(endpoint)) {
+        m_cores[endpoint]->subscribeToNode(nodeId);
+        qDebug() << "OPCUAPlugin:pvAddEvent - resumed monitoring for" << nodeId;
+    }
+
     return true;
 }
 
 // next two routines are used to connect and disconnect monitors when the application gest suspended and reactivated
-int OPCUAPlugin::pvReconnect(knobData *kData) {
-    Q_UNUSED(kData);
-    qDebug() << "OPCUAPlugin:pvReconnect";
+int OPCUAPlugin::pvReconnect(knobData *kData)
+{
+
+    QString endpoint, nodeId;
+    if (!resolveConnectionString(kData, endpoint, nodeId))
+        return false;
+
+    QMutexLocker lock(&m_mutex);
+    if (!m_cores.contains(endpoint))
+        return false;
+
+    auto core = m_cores[endpoint];
+    core->disconnectOpc();
+    m_connectionState[endpoint] = ConnectionState::NotConnected;
+
+    core->connectOpc(endpoint, [=](bool success) {
+        if (success) {
+            m_connectionState[endpoint] = ConnectionState::Connected;
+            core->subscribeToNode(nodeId);
+            qDebug() << "OPCUAPlugin: Reconnected and subscribed to" << nodeId;
+        } else {
+            qWarning() << "OPCUAPlugin: Failed to reconnect to" << endpoint;
+        }
+    });
     return true;
 }
 
-int OPCUAPlugin::pvDisconnect(knobData *kData) {
-    Q_UNUSED(kData);
-    qDebug() << "OPCUAPlugin:pvDisconnect";
+int OPCUAPlugin::pvDisconnect(knobData *kData)
+{
+
+    QString endpoint, nodeId;
+    if (!resolveConnectionString(kData, endpoint, nodeId))
+        return false;
+
+    QMutexLocker lock(&m_mutex);
+    if (m_cores.contains(endpoint)) {
+        m_cores[endpoint]->disconnectOpc();
+        m_connectionState[endpoint] = ConnectionState::NotConnected;
+        qDebug() << "OPCUAPlugin: Disconnected from" << endpoint;
+    }
     return true;
 }
 
@@ -333,11 +421,115 @@ int OPCUAPlugin::FlushIO() {
 // termination (in case of epics3, this is used to destroy the context when the application gest deactivated
 // otherwise probably no meaning; in this demo, we stop the simulation, however it will not be reactivated
 // any more (you may do that through pvReconnect)
-int OPCUAPlugin::TerminateIO() {
-    //qDebug() << "OPCUAPlugin:TerminateIO";
-    timerValues->stop();
-    timer->stop();
+int OPCUAPlugin::TerminateIO()
+{
+    qDebug() << "OPCUAPlugin: TerminateIO called.";
+
+    QMutexLocker locker(&m_mutex);
+
+    for (auto &core : m_cores) {
+        if (core) {
+            core->clearAllSubscriptions();  // gracefully disable monitoring
+            core->disconnectOpc();          // disconnect from server
+        }
+    }
+
+    m_cores.clear();                // remove references
+    m_connectionState.clear();      // reset states
+    m_pendingSubscriptions.clear(); // reset pending list
+    Channelcache.clear();           // clear nodeId → index map
+
     return true;
+}
+
+QString OPCUAPlugin::findNodeIdByIndex(int index){
+    for (auto it = Channelcache.begin(); it != Channelcache.end(); ++it) {
+        if (it.value() == index)
+            return it.key();
+    }
+    return QString();
+}
+
+bool OPCUAPlugin::resolveConnectionString(knobData *kData, QString &endpoint, QString &nodeId)
+{
+    QString logicalKey = QString::fromLatin1(kData->pv).remove("opcua://");
+    QString fullConnection = opcua_translation_map.value(logicalKey, "");
+    if(fullConnection.isEmpty()){
+        qWarning() << "OPCUAPlugin: No translation found for " << logicalKey;
+        return false;
+    }
+
+    QString raw = fullConnection.remove("opcua://");
+    int splitPos = raw.lastIndexOf("/ns=");
+    if(splitPos < 0){
+        qWarning() << "OPCUAPlugin: Invalid connection string: " << fullConnection;
+        return false;
+    }
+
+    endpoint = raw.left(splitPos);
+    nodeId = raw.mid(splitPos + 1).trimmed();
+    return true;
+}
+
+#if QT_VERSION >= QT_VERSION_CHECK(6,0,0)
+#define QT_VARIANT_TYPE(value) value.typeId()
+#else
+#define QT_VARIANT_TYPE(value) value.type()
+#endif
+
+caType OPCUAPlugin::generateCaTypeFromVariant(const QVariant &value)
+{
+    switch (QT_VARIANT_TYPE(value)) {
+    case QMetaType::Double:
+        return caDOUBLE;
+    case QMetaType::Float:
+        return caFLOAT;
+    case QMetaType::Int:
+    case QMetaType::UInt:
+    case QMetaType::LongLong:
+    case QMetaType::ULongLong:
+    case QMetaType::Short:
+    case QMetaType::Long:
+    case QMetaType::ULong:
+        return caINT;
+    case QMetaType::Bool:
+        return caENUM;
+    case QMetaType::QString:
+        return caSTRING;
+    default:
+        return caDOUBLE;
+    }
+}
+
+void OPCUAPlugin::updateKnobDataFromVariant(knobData &kData, const QVariant &value)
+{
+    QMutexLocker locker((QMutex *)kData.mutex);
+
+    caType detectedType = generateCaTypeFromVariant(value);
+    kData.edata.fieldtype = detectedType;
+    kData.edata.connected = 1;
+    kData.edata.accessR = true;
+    kData.edata.accessW = false;
+    kData.edata.monitorCount++;
+
+    switch (detectedType) {
+    case caDOUBLE:
+    case caFLOAT:
+        kData.edata.rvalue = value.toDouble();
+        break;
+    case caINT:
+        kData.edata.rvalue = value.toInt();
+        break;
+    case caENUM:
+        kData.edata.rvalue = value.toBool() ? 1.0 : 0.0;
+        break;
+    case caSTRING:
+        kData.edata.rvalue = 0.0;
+        break;
+    default:
+        kData.edata.rvalue = 0.0;
+        break;
+    }
 }
 
 #if QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)

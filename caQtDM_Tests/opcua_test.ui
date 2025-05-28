@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>OpcUaChart</class>
- <widget class="QWidget" name="OpcUaChart">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -11,82 +11,113 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>OPC UA Live Chart (Dynamic Endpoint)</string>
+   <string>MainWindow</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout">
-
-   <!-- Display latest values as caLabels -->
-   <item>
-    <layout class="QHBoxLayout" name="horizontalLayoutLabels">
-     <item>
-      <widget class="QLabel" name="labelX">
-       <property name="text">
-        <string>X:</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="caLabel" name="caLabelX">
-       <property name="pv">
-        <string>opcua::opc.tcp://localhost:4841/freeopcua/server/ns=2;i=4</string>
-       </property>
-       <property name="text">
-        <string>0</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QLabel" name="labelY">
-       <property name="text">
-        <string>Y:</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="caLabel" name="caLabelY">
-       <property name="pv">
-        <string>opcua::opc.tcp://localhost:4841/freeopcua/server/ns=2;i=5</string>
-       </property>
-       <property name="text">
-        <string>0</string>
-       </property>
-      </widget>
-     </item>
-    </layout>
-   </item>
-
-   <!-- Live XY Plot using caStripPlot -->
-   <item>
-    <widget class="caStripPlot" name="xyPlot">
-     <property name="pvX">
-      <string>opcua::opc.tcp://localhost:4841/freeopcua/server/ns=2;i=4</string>
-     </property>
-     <property name="pvY">
-      <string>opcua::opc.tcp://localhost:4841/freeopcua/server/ns=2;i=5</string>
-     </property>
-     <property name="title">
-      <string>Live OPC UA XY Plot</string>
-     </property>
-     <property name="timeSpan">
-      <double>30.0</double>
-     </property>
-     <property name="xMin">
-      <double>0.0</double>
-     </property>
-     <property name="xMax">
-      <double>100.0</double>
-     </property>
-     <property name="yMin">
-      <double>0.0</double>
-     </property>
-     <property name="yMax">
-      <double>100.0</double>
-     </property>
+  <widget class="QWidget" name="caCentralwidget">
+   <widget class="caTabbedWidget" name="caTabbedWidget">
+    <property name="geometry">
+     <rect>
+      <x>170</x>
+      <y>80</y>
+      <width>391</width>
+      <height>341</height>
+     </rect>
+    </property>
+    <property name="currentIndex">
+     <number>0</number>
+    </property>
+    <property name="tabsClosable">
+     <bool>false</bool>
+    </property>
+    <widget class="QWidget" name="caTab1">
+     <attribute name="title">
+      <string>Tab 1</string>
+     </attribute>
+     <widget class="caLineEdit" name="calineedit">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>40</y>
+        <width>221</width>
+        <height>34</height>
+       </rect>
+      </property>
+      <property name="channel" stdset="0">
+       <string notr="true">opcua://SERVER1:NODE1</string>
+      </property>
+     </widget>
+     <widget class="caLineEdit" name="calineedit_2">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>120</y>
+        <width>221</width>
+        <height>34</height>
+       </rect>
+      </property>
+      <property name="channel" stdset="0">
+       <string notr="true">opcua://SERVER1:NODE2</string>
+      </property>
+     </widget>
     </widget>
-   </item>
-
-  </layout>
+    <widget class="QWidget" name="caTab2">
+     <attribute name="title">
+      <string>Tab 2</string>
+     </attribute>
+     <widget class="caLineEdit" name="calineedit_4">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>120</y>
+        <width>221</width>
+        <height>34</height>
+       </rect>
+      </property>
+      <property name="channel" stdset="0">
+       <string notr="true">opcua://SERVER2:NODE2</string>
+      </property>
+     </widget>
+     <widget class="caLineEdit" name="calineedit_3">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>40</y>
+        <width>221</width>
+        <height>34</height>
+       </rect>
+      </property>
+      <property name="channel" stdset="0">
+       <string notr="true">opcua://SERVER2:NODE1</string>
+      </property>
+     </widget>
+    </widget>
+   </widget>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>800</width>
+     <height>21</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>caLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>caLineEdit</header>
+  </customwidget>
+  <customwidget>
+   <class>caTabbedWidget</class>
+   <extends>QTabWidget</extends>
+   <header>catabbedwidget.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>
